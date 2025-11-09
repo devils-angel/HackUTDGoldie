@@ -237,3 +237,21 @@ export const updateLoanApplicationById = async (id, fields) => {
     values
   );
 };
+
+export const createApprovalLog = async ({
+  applicationId,
+  stage,
+  action,
+  actorEmail = null,
+  actorRole = null,
+  notes = null
+}) => {
+  await query(
+    `
+    INSERT INTO approval_logs
+      (application_id, stage, action, actor_email, actor_role, notes)
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `,
+    [applicationId, stage, action, actorEmail, actorRole, notes]
+  );
+};

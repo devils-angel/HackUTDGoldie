@@ -4,6 +4,7 @@ const links = [
   { label: "Dashboard", to: "/dashboard" },
   { label: "Pending Requests", to: "/pending" },
   { label: "Loan Workspace", to: "/loan" },
+  { label: "Approval Log", to: "/logs" },
   { label: "Sign Out", to: "/login" },
 ];
 

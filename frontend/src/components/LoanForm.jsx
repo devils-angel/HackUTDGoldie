@@ -452,6 +452,23 @@ export default function LoanForm() {
                         <p className={`mt-2 text-sm font-semibold ${tone.color}`}>
                           {tone.label}
                         </p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                          {[
+                            { key: "kyc_status", label: "KYC" },
+                            { key: "compliance_status", label: "Compliance" },
+                            { key: "eligibility_status", label: "Eligibility" }
+                          ].map((stage) => {
+                            const stageTone = statusTone(req[stage.key]);
+                            return (
+                              <span
+                                key={`${req.application_id}-${stage.key}`}
+                                className={`px-3 py-1 rounded-full border border-white/10 bg-white/5 ${stageTone.color}`}
+                              >
+                                {stage.label}: {stageTone.label}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })}

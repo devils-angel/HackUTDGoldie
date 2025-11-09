@@ -96,6 +96,19 @@ const runMigrations = async () => {
       email_sent BOOLEAN DEFAULT FALSE
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS approval_logs (
+      id SERIAL PRIMARY KEY,
+      application_id TEXT NOT NULL,
+      stage TEXT NOT NULL,
+      action TEXT NOT NULL,
+      actor_email TEXT,
+      actor_role TEXT,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
 };
 
 await runMigrations();

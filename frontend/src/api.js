@@ -16,12 +16,14 @@ export const registerUser = (data) => API.post("/register", data);
 export const fetchData = () => API.get("/data");
 export const applyForLoan = (data) => API.post("/loan-application/submit", data);
 export const fetchPendingRequests = () => API.get("/loan-application/pending");
-export const approveLoanApplication = (applicationId) =>
-  API.post(`/loan-application/${applicationId}/approve`);
-export const rejectLoanApplication = (applicationId, reason) =>
-  API.post(`/loan-application/${applicationId}/reject`, { reason });
+export const approveLoanApplication = (applicationId, actor) =>
+  API.post(`/loan-application/${applicationId}/approve`, { actor });
+export const rejectLoanApplication = (applicationId, reason, actor) =>
+  API.post(`/loan-application/${applicationId}/reject`, { reason, actor });
 export const fetchLoanApplications = (params = {}) =>
   API.get("/loan-application/list", { params });
 export const fetchUserLoans = (email, limit = 50) =>
   API.get("/loan-application/user", { params: { email, limit } });
+export const fetchApprovalLogs = (params = {}) =>
+  API.get("/approval-logs", { params });
 // export const applyForLoan = (data) => API.post("/loan", data);

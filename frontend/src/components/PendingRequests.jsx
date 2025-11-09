@@ -6,11 +6,28 @@ import {
   rejectLoanApplication,
 } from "../api";
 
+const STAGES = [
+  { key: "kyc_status", label: "KYC" },
+  { key: "compliance_status", label: "Compliance" },
+  { key: "eligibility_status", label: "Eligibility" },
+];
+
+const statusTone = (value) => {
+  const upper = (value || "PENDING").toUpperCase();
+  if (upper === "APPROVED") return { color: "text-[#64F6A3]", label: "APPROVED" };
+  if (upper === "REJECTED") return { color: "text-[#FF8FA3]", label: "REJECTED" };
+  return { color: "text-[#F0BB5A]", label: upper };
+};
+
+const nextStageFor = (request) =>
+  STAGES.find((stage) => (request[stage.key] || "PENDING") !== "APPROVED");
+
 export default function PendingRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actioning, setActioning] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const loadRequests = async () => {
     setLoading(true);
@@ -27,6 +44,14 @@ export default function PendingRequests() {
   };
 
   useEffect(() => {
+    const stored = localStorage.getItem("goldmanUser");
+    if (stored) {
+      try {
+        setCurrentUser(JSON.parse(stored));
+      } catch (err) {
+        console.error("Failed to parse user", err);
+      }
+    }
     loadRequests();
   }, []);
 
@@ -34,10 +59,13 @@ export default function PendingRequests() {
     setActioning(`${type}-${id}`);
     setError(null);
     try {
+      const actor = currentUser
+        ? { email: currentUser.email, role: currentUser.role }
+        : undefined;
       if (type === "approve") {
-        await approveLoanApplication(id);
+        await approveLoanApplication(id, actor);
       } else {
-        await rejectLoanApplication(id);
+        await rejectLoanApplication(id, undefined, actor);
       }
       await loadRequests();
     } catch (err) {
@@ -82,7 +110,9 @@ export default function PendingRequests() {
           </div>
         ) : (
           <div className="space-y-4">
-            {requests.map((request) => (
+            {requests.map((request) => {
+              const nextStage = nextStageFor(request);
+              return (
               <div
                 key={request.application_id}
                 className="bg-[#1B1F35] border border-white/10 rounded-3xl p-6 space-y-4"
@@ -97,8 +127,8 @@ export default function PendingRequests() {
                       {request.region} · {request.country}
                     </p>
                   </div>
-                  <div className="flex gap-3">
-                    <button
+                <div className="flex gap-3">
+                  <button
                       disabled={actioning === `reject-${request.application_id}`}
                       onClick={() =>
                         handleAction(request.application_id, "reject")
@@ -107,16 +137,35 @@ export default function PendingRequests() {
                     >
                       Reject
                     </button>
-                    <button
-                      disabled={actioning === `approve-${request.application_id}`}
+                  <button
+                      disabled={
+                        !nextStage ||
+                        actioning === `approve-${request.application_id}`
+                      }
                       onClick={() =>
                         handleAction(request.application_id, "approve")
                       }
                       className="px-5 py-2 rounded-2xl bg-[#2178C4] shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition disabled:opacity-50"
                     >
-                      Approve
+                      {nextStage
+                        ? `Approve ${nextStage.label}`
+                        : "Fully Approved"}
                     </button>
                   </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {STAGES.map((stage) => {
+                    const tone = statusTone(request[stage.key]);
+                    return (
+                      <span
+                        key={`${request.application_id}-${stage.key}`}
+                        className={`px-3 py-1 rounded-full border border-white/10 bg-white/5 ${tone.color}`}
+                      >
+                        {stage.label}: {tone.label}
+                      </span>
+                    );
+                  })}
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-[#C3CDDA]">
@@ -138,7 +187,7 @@ export default function PendingRequests() {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>

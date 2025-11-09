@@ -480,3 +480,10 @@ All endpoints return appropriate HTTP status codes:
 8. Multi-factor authentication
 9. Role-based access control
 10. API rate limiting and authentication
+#### GET /approval-logs
+Audit trail for manual approvals/rejections (most recent first).
+
+```bash
+curl http://localhost:5003/approval-logs
+```
+Use `?limit=50` or `?application_id=LOAN-...` to filter results.

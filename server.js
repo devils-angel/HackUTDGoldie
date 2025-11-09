@@ -9,7 +9,9 @@ import {
   resetApplicationStatuses,
   getLoanApplicationRow,
   updateLoanApplicationById,
-  mapLoanRow
+  updateLoanFinalStatus,
+  mapLoanRow,
+  createApprovalLog
 } from "./loanService.js";
 import { seedStocks } from "./seedData.js";
 import { seedLoanApplications } from "./seedLoanData.js";
@@ -20,6 +22,33 @@ const autoSeedOnStart = process.env.AUTO_SEED === "true";
 const USER_ROLES = ["ADMIN", "VENDOR", "CLIENT"];
 const normalizeRole = (value) =>
   (value || "CLIENT").toString().trim().toUpperCase();
+const MANUAL_STAGES = [
+  {
+    key: "kyc_status",
+    label: "KYC",
+    verifiedField: "kyc_verified_at",
+    remarksField: "kyc_remarks"
+  },
+  {
+    key: "compliance_status",
+    label: "Compliance",
+    verifiedField: "compliance_verified_at",
+    remarksField: "compliance_remarks"
+  },
+  {
+    key: "eligibility_status",
+    label: "Eligibility",
+    verifiedField: "eligibility_verified_at",
+    remarksField: "eligibility_remarks"
+  }
+];
+const actorFromRequest = (req) => {
+  const actor = req.body?.actor || {};
+  return {
+    email: actor.email || null,
+    role: actor.role || null
+  };
+};
 
 const app = express();
 app.use(cors());
@@ -254,14 +283,55 @@ app.post(
       return res.status(400).json({ error: "Application is not pending review" });
     }
 
+    const nextStage = MANUAL_STAGES.find(
+      (stage) => (application[stage.key] || "PENDING") !== "APPROVED"
+    );
+
+    if (!nextStage) {
+      return res.status(400).json({ error: "Application already fully approved" });
+    }
+
+    const now = new Date().toISOString();
+    const actor = actorFromRequest(req);
+
     await updateLoanApplicationById(application.id, {
-      review_status: "APPROVED",
-      final_status: "APPROVED"
+      [nextStage.key]: "APPROVED",
+      [nextStage.verifiedField]: now,
+      [nextStage.remarksField]: `Manually approved on ${now}`
     });
-    VerificationService.processApplication(applicationId);
+
+    await createApprovalLog({
+      applicationId,
+      stage: nextStage.label,
+      action: "STAGE_APPROVED",
+      actorEmail: actor.email,
+      actorRole: actor.role,
+      notes: req.body?.notes || null
+    });
+
+    let message = `${nextStage.label} stage approved`;
+
+    if (nextStage.key === "eligibility_status") {
+      await updateLoanFinalStatus(application.id, "APPROVED");
+      await updateLoanApplicationById(application.id, {
+        final_decision_at: now,
+        final_remarks: "Approved via manual eligibility review",
+        review_status: "APPROVED"
+      });
+      await createApprovalLog({
+        applicationId,
+        stage: "Final Decision",
+        action: "FINAL_APPROVED",
+        actorEmail: actor.email,
+        actorRole: actor.role,
+        notes: "Eligibility approved manually"
+      });
+      message = "Application fully approved";
+    }
+
     const updated = await getLoanApplicationByApplicationId(applicationId);
     return res.json({
-      message: "Application approved and processed",
+      message,
       application: updated
     });
   })
@@ -280,6 +350,10 @@ app.post(
       return res.status(400).json({ error: "Application is not pending review" });
     }
 
+    const actor = actorFromRequest(req);
+    const nextStage = MANUAL_STAGES.find(
+      (stage) => (application[stage.key] || "PENDING") !== "APPROVED"
+    );
     const finalRemarks = reason?.trim()
       ? reason.trim()
       : "Application rejected during manual review";
@@ -291,6 +365,14 @@ app.post(
     });
 
     const updated = await getLoanApplicationByApplicationId(applicationId);
+    await createApprovalLog({
+      applicationId,
+      stage: nextStage?.label || "Manual Review",
+      action: "REJECTED",
+      actorEmail: actor.email,
+      actorRole: actor.role,
+      notes: finalRemarks
+    });
     await VerificationService.sendNotification(updated);
 
     return res.json({
@@ -503,6 +585,29 @@ app.get(
         rejected: Number(row.rejected)
       }))
     });
+  })
+);
+
+app.get(
+  "/approval-logs",
+  asyncHandler(async (req, res) => {
+    const limit = Number(req.query.limit) || 200;
+    const applicationId = req.query.application_id;
+    const clauses = [];
+    const values = [];
+    if (applicationId) {
+      clauses.push(`application_id = $${values.length + 1}`);
+      values.push(applicationId);
+    }
+    values.push(limit);
+    const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+    const { rows } = await query(
+      `SELECT * FROM approval_logs ${where}
+       ORDER BY created_at DESC
+       LIMIT $${values.length}`,
+      values
+    );
+    res.json({ logs: rows });
   })
 );
 
