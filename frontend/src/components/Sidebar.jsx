@@ -1,14 +1,36 @@
 import { NavLink } from "react-router-dom";
 
-const links = [
-  { label: "Dashboard", to: "/dashboard" },
-  { label: "Pending Requests", to: "/pending" },
-  { label: "Loan Workspace", to: "/loan" },
-  { label: "Approval Log", to: "/logs" },
-  { label: "Sign Out", to: "/login" },
-];
+const roleLinks = {
+  ADMIN: [
+    { label: "Dashboard", to: "/dashboard" },
+    { label: "Pending Requests", to: "/pending" },
+    { label: "Approval Log", to: "/logs" },
+    { label: "Sign Out", to: "/login" },
+  ],
+  VENDOR: [
+    { label: "Pending Requests", to: "/pending" },
+    { label: "Sign Out", to: "/login" },
+  ],
+  CLIENT: [
+    { label: "Loan Workspace", to: "/loan" },
+    { label: "Sign Out", to: "/login" },
+  ],
+};
+
+const getLinksForRole = () => {
+  if (typeof window === "undefined") return roleLinks.CLIENT;
+  const stored = localStorage.getItem("goldmanUser");
+  if (!stored) return roleLinks.CLIENT;
+  try {
+    const user = JSON.parse(stored);
+    return roleLinks[user.role?.toUpperCase()] || roleLinks.CLIENT;
+  } catch {
+    return roleLinks.CLIENT;
+  }
+};
 
 export default function Sidebar() {
+  const links = getLinksForRole();
   return (
     <aside className="hidden lg:flex w-72 bg-[#1B1F35] text-white flex-col justify-between py-10 px-8 shadow-2xl">
       <div className="space-y-10">
