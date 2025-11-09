@@ -26,4 +26,14 @@ export const fetchUserLoans = (email, limit = 50) =>
   API.get("/loan-application/user", { params: { email, limit } });
 export const fetchApprovalLogs = (params = {}) =>
   API.get("/approval-logs", { params });
+export const fetchDashboardOverview = () =>
+  API.get("/dashboard/overview");
+export const fetchDashboardByRegion = () =>
+  API.get("/dashboard/by-region");
+export const fetchDashboardByCountry = () =>
+  API.get("/dashboard/by-country");
+export const fetchDashboardVerificationStats = () =>
+  API.get("/dashboard/verification-stats");
+export const fetchDashboardFinancialMetrics = () =>
+  API.get("/dashboard/financial-metrics");
 // export const applyForLoan = (data) => API.post("/loan", data);
