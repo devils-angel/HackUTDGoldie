@@ -3,14 +3,15 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import Sidebar from "./Sidebar";
 import { fetchApprovalLogs } from "../api";
+import { getStatusChipStyles } from "../utils/statusStyles";
 
 dayjs.extend(relativeTime);
 
-const actionColors = {
-  STAGE_APPROVED: "var(--status-approve-bg)",
-  STAGE_REJECTED: "var(--status-reject-bg)",
-  AUTO_REJECTED: "var(--status-reject-bg)",
-  FINAL_APPROVED: "var(--status-approve-bg)"
+const actionToStatus = {
+  STAGE_APPROVED: "APPROVED",
+  FINAL_APPROVED: "APPROVED",
+  STAGE_REJECTED: "REJECTED",
+  AUTO_REJECTED: "AUTO_REJECTED"
 };
 
 export default function ApprovalLogs() {
@@ -75,8 +76,9 @@ export default function ApprovalLogs() {
         ) : (
           <div className="space-y-6">
             {logs.map((log) => {
-              const actionAccent =
-                actionColors[log.action] || "var(--color-blue)";
+              const tone = getStatusChipStyles(
+                actionToStatus[log.action] || "PENDING"
+              );
               return (
                 <article
                   key={log.id}
@@ -112,10 +114,7 @@ export default function ApprovalLogs() {
                   <div className="flex items-center gap-3 self-stretch md:self-auto">
                     <span
                       className="inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold tracking-wide border"
-                      style={{
-                        borderColor: actionAccent,
-                        color: actionAccent
-                      }}
+                      style={tone.style}
                     >
                       {log.action.replace("_", " ")}
                     </span>

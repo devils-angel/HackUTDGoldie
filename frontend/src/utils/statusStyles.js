@@ -18,7 +18,7 @@ const STATUS_CONFIG = {
   AUTO_REJECTED: {
     label: "AUTO REJECTED",
     bg: "var(--status-auto-reject-bg)",
-    text: "var(--status-reject-text)",
+    text: "var(--status-auto-reject-text)",
     border: "var(--status-auto-reject-border)",
     panel: "var(--model-reject-panel)",
     bar: "var(--status-reject-bar)",
