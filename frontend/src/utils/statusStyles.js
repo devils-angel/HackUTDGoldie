@@ -15,6 +15,14 @@ const STATUS_CONFIG = {
     panel: "var(--model-reject-panel)",
     bar: "var(--status-reject-bar)",
   },
+  AUTO_REJECTED: {
+    label: "AUTO REJECTED",
+    bg: "var(--status-auto-reject-bg)",
+    text: "var(--status-reject-text)",
+    border: "var(--status-auto-reject-border)",
+    panel: "var(--model-reject-panel)",
+    bar: "var(--status-reject-bar)",
+  },
   PENDING: {
     label: "PENDING",
     bg: "var(--status-pending-bg)",

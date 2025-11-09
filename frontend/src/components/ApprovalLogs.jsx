@@ -1,6 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import Sidebar from "./Sidebar";
 import { fetchApprovalLogs } from "../api";
+
+dayjs.extend(relativeTime);
+
+const actionColors = {
+  STAGE_APPROVED: "var(--status-approve-bg)",
+  STAGE_REJECTED: "var(--status-reject-bg)",
+  AUTO_REJECTED: "var(--status-reject-bg)",
+  FINAL_APPROVED: "var(--status-approve-bg)"
+};
 
 export default function ApprovalLogs() {
   const [logs, setLogs] = useState([]);
@@ -62,52 +73,57 @@ export default function ApprovalLogs() {
             No approval activity yet.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border-separate border-spacing-y-2">
-              <thead className="text-[var(--color-sky)]">
-                <tr>
-                  <th className="text-left px-4 py-2">Application</th>
-                  <th className="text-left px-4 py-2">Stage</th>
-                  <th className="text-left px-4 py-2">Action</th>
-                  <th className="text-left px-4 py-2">Performed By</th>
-                  <th className="text-left px-4 py-2">Notes</th>
-                  <th className="text-left px-4 py-2">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr
-                    key={log.id}
-                    className="bg-[var(--color-charcoal)] border border-[var(--color-blue)]/20 rounded-2xl text-[var(--color-text)]"
-                  >
-                    <td className="px-4 py-3 font-mono text-xs">
+          <div className="space-y-6">
+            {logs.map((log) => {
+              const actionAccent =
+                actionColors[log.action] || "var(--color-blue)";
+              return (
+                <article
+                  key={log.id}
+                  className="rounded-3xl bg-[var(--color-charcoal)] border border-[var(--color-blue)]/10 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-inner shadow-black/20"
+                >
+                  <div className="flex-1 space-y-2">
+                    <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--color-gray)]">
                       {log.application_id}
-                    </td>
-                    <td className="px-4 py-3">{log.stage}</td>
-                    <td className="px-4 py-3">{log.action}</td>
-                    <td className="px-4 py-3">
-                      {log.actor_email ? (
-                        <>
-                          <span className="font-semibold">{log.actor_email}</span>
-                          <br />
-                          <span className="text-xs text-[var(--color-text)]">
-                            {log.actor_role || "N/A"}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-[var(--color-text)]">System</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-text)]">
-                      {log.notes || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-text)]">
-                      {new Date(log.created_at).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </p>
+                    <p className="text-lg font-semibold text-[var(--color-text)]">
+                      {log.stage}
+                    </p>
+                    <p className="text-sm text-[var(--color-text)]/80">
+                      {log.notes || "No additional remarks"}
+                    </p>
+                    <div className="flex flex-wrap gap-3 text-xs text-[var(--color-text)]/70">
+                      <span>
+                        {log.actor_email ? (
+                          <>
+                            {log.actor_email} · {log.actor_role || "N/A"}
+                          </>
+                        ) : (
+                          "System generated"
+                        )}
+                      </span>
+                      <span>•</span>
+                      <span>{dayjs(log.created_at).format("MMM D, YYYY HH:mm")}</span>
+                      <span className="text-[var(--color-sky)]">
+                        ({dayjs(log.created_at).fromNow()})
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 self-stretch md:self-auto">
+                    <span
+                      className="inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold tracking-wide border"
+                      style={{
+                        borderColor: actionAccent,
+                        color: actionAccent
+                      }}
+                    >
+                      {log.action.replace("_", " ")}
+                    </span>
+                    <div className="hidden md:block h-12 w-px bg-[var(--color-blue)]/15" />
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </div>

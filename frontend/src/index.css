@@ -24,9 +24,11 @@
   --status-pending-border: rgba(240, 187, 90, 0.4);
   --status-pending-bar: #c47d1c;
   --status-reject-bg: #ff8fa3;
-  --status-reject-text: #231f20;
+  --status-reject-text: #ffffff;
   --status-reject-border: rgba(255, 143, 163, 0.4);
   --status-reject-bar: #c4435a;
+  --status-auto-reject-bg: #c2344b;
+  --status-auto-reject-border: rgba(194, 52, 75, 0.45);
   --model-approve-panel: rgba(100, 246, 163, 0.12);
   --model-pending-panel: rgba(240, 187, 90, 0.12);
   --model-reject-panel: rgba(255, 143, 163, 0.15);
@@ -64,6 +66,8 @@
   --status-reject-text: #7a1525;
   --status-reject-border: rgba(255, 143, 163, 0.45);
   --status-reject-bar: #a11f32;
+  --status-auto-reject-bg: #9c1f35;
+  --status-auto-reject-border: rgba(194, 52, 75, 0.45);
   --model-approve-panel: rgba(100, 246, 163, 0.25);
   --model-pending-panel: rgba(240, 187, 90, 0.25);
   --model-reject-panel: rgba(255, 143, 163, 0.3);
