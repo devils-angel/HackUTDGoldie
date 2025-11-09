@@ -7,7 +7,7 @@ from models import db, Stock, User, LoanApplication
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_cors import CORS
 from verification_service import VerificationService
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 def create_app():
     app = Flask(__name__)
@@ -319,8 +319,8 @@ def create_app():
             LoanApplication.country,
             LoanApplication.region,
             func.count(LoanApplication.id).label('count'),
-            func.sum(func.case((LoanApplication.final_status == 'APPROVED', 1), else_=0)).label('approved'),
-            func.sum(func.case((LoanApplication.final_status == 'REJECTED', 1), else_=0)).label('rejected')
+            func.sum(case((LoanApplication.final_status == 'APPROVED', 1), else_=0)).label('approved'),
+            func.sum(case((LoanApplication.final_status == 'REJECTED', 1), else_=0)).label('rejected')
         ).group_by(LoanApplication.country, LoanApplication.region).all()
         
         country_data = [
@@ -401,8 +401,8 @@ def create_app():
         results = db.session.query(
             func.date(LoanApplication.created_at).label('date'),
             func.count(LoanApplication.id).label('count'),
-            func.sum(func.case((LoanApplication.final_status == 'APPROVED', 1), else_=0)).label('approved'),
-            func.sum(func.case((LoanApplication.final_status == 'REJECTED', 1), else_=0)).label('rejected')
+            func.sum(case((LoanApplication.final_status == 'APPROVED', 1), else_=0)).label('approved'),
+            func.sum(case((LoanApplication.final_status == 'REJECTED', 1), else_=0)).label('rejected')
         ).group_by(func.date(LoanApplication.created_at)).order_by(func.date(LoanApplication.created_at).desc()).limit(days).all()
         
         timeline_data = [
