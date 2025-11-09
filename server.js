@@ -29,6 +29,8 @@ const PORT = process.env.PORT || 5003;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-goldman-secret";
 const MODEL_ENDPOINT = process.env.MODEL_ENDPOINT || "";
 const MODEL_TIMEOUT_MS = Number(process.env.MODEL_TIMEOUT_MS || 4000);
+const MODEL_AUTO_REJECT =
+  (process.env.MODEL_AUTO_REJECT || "true").toLowerCase() === "true";
 const autoSeedOnStart = process.env.AUTO_SEED === "true";
 const USER_ROLES = ["ADMIN", "VENDOR", "CLIENT"];
 const normalizeRole = (value) =>
@@ -405,6 +407,55 @@ app.post(
     }
 
     const application = await createLoanApplication(data);
+
+    const shouldAutoReject =
+      MODEL_AUTO_REJECT && data.model_decision === "MODEL_REJECT";
+
+    if (shouldAutoReject) {
+      const nowIso = new Date().toISOString();
+      const autoRemarks =
+        "Automatically rejected based on model risk assessment.";
+      await updateLoanApplicationById(application.id, {
+        review_status: "REJECTED",
+        final_status: "REJECTED",
+        final_decision_at: nowIso,
+        final_remarks: autoRemarks,
+        kyc_status: "REJECTED",
+        compliance_status: "REJECTED",
+        eligibility_status: "REJECTED",
+        kyc_verified_at: nowIso,
+        compliance_verified_at: nowIso,
+        eligibility_verified_at: nowIso,
+        kyc_remarks: autoRemarks,
+        compliance_remarks: autoRemarks,
+        eligibility_remarks: autoRemarks
+      });
+
+      await createApprovalLog({
+        applicationId: application.application_id,
+        stage: "Model Decision",
+        action: "AUTO_REJECTED",
+        actorEmail: null,
+        actorRole: "MODEL",
+        notes: autoRemarks
+      });
+
+      await createNotification({
+        recipientEmail: application.email,
+        role: "CLIENT",
+        applicationId: application.application_id,
+        message: `Your loan ${application.application_id} was automatically rejected based on risk scoring.`
+      });
+
+      const rejected = await getLoanApplicationByApplicationId(
+        application.application_id
+      );
+
+      return res.status(201).json({
+        message: "Application automatically rejected based on model inference.",
+        application: rejected
+      });
+    }
 
     const vendorEmails = await fetchUsersByRole("VENDOR");
     await Promise.all(

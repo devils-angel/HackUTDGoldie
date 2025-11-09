@@ -416,10 +416,30 @@ export default function LoanForm() {
             )}
 
             {pendingInfo && (
-              <div className="p-6 rounded-3xl border border-[#4ADE80]/30 bg-[#0F241B] space-y-4">
+              <div
+                className={`p-6 rounded-3xl space-y-4 ${
+                  pendingInfo.review_status === "REJECTED"
+                    ? "border border-[#FF8FA3]/40 bg-[#2B151E]"
+                    : pendingInfo.review_status === "APPROVED"
+                    ? "border border-[#4ADE80]/30 bg-[#0F241B]"
+                    : "border border-[#F0BB5A]/30 bg-[#2B1F0F]"
+                }`}
+              >
                 <div className="flex flex-col gap-2">
-                  <p className="text-sm uppercase tracking-[0.3em] text-[#64F6A3]">
-                    In manual review
+                  <p
+                    className={`text-sm uppercase tracking-[0.3em] ${
+                      pendingInfo.review_status === "REJECTED"
+                        ? "text-[#FF8FA3]"
+                        : pendingInfo.review_status === "APPROVED"
+                        ? "text-[#64F6A3]"
+                        : "text-[#F0BB5A]"
+                    }`}
+                  >
+                    {pendingInfo.review_status === "REJECTED"
+                      ? "Rejected"
+                      : pendingInfo.review_status === "APPROVED"
+                      ? "Fully approved"
+                      : "In manual review"}
                   </p>
                   <h3 className="text-2xl font-semibold">
                     {pendingInfo.application_id}

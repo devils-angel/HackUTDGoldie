@@ -37,6 +37,7 @@ Set:
 - `PG*` – Postgres connection
 - `JWT_SECRET` – random string
 - `MODEL_ENDPOINT` – set later after running the ML API (e.g., `http://localhost:8000/predict`)
+- `MODEL_AUTO_REJECT` – `true/false`, auto-decline apps when the model verdict is `MODEL_REJECT`
 
 ## 4. Run the ML pipeline (optional but recommended)
 
@@ -52,6 +53,7 @@ Keep the FastAPI service running in a separate terminal and set:
 
 ```
 MODEL_ENDPOINT=http://localhost:8000/predict
+MODEL_AUTO_REJECT=true
 ```
 
 ## 5. Start PostgreSQL
