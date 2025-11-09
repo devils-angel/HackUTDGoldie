@@ -3,6 +3,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import LoanForm from "./components/LoanForm";
+import PendingRequests from "./components/PendingRequests";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/loan" element={<LoanForm />} />
+        <Route path="/pending" element={<PendingRequests />} />
       </Routes>
     </BrowserRouter>
   );

@@ -2,7 +2,7 @@ import process from "process";
 import { pathToFileURL } from "url";
 import VerificationService from "./verificationService.js";
 import { createLoanApplication } from "./loanService.js";
-import db from "./db.js";
+import { query } from "./db.js";
 
 const REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA"];
 
@@ -81,16 +81,14 @@ const LOAN_PURPOSES = [
 ];
 
 const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
 const randomPhone = () =>
   `+${Math.floor(Math.random() * 900 + 100)}${Math.floor(Math.random() * 9000000000 + 1000000000)}`;
-
 const randomEmail = (name) => {
   const domains = ["gmail.com", "yahoo.com", "outlook.com", "company.com", "email.com"];
   return `${name.toLowerCase().replace(/\s+/g, ".")}@${randomItem(domains)}`;
 };
 
-export const seedLoanApplications = (count = 50, { silent = false } = {}) => {
+export const seedLoanApplications = async (count = 50, { silent = false } = {}) => {
   const log = silent ? () => {} : console.log;
 
   log("============================================================");
@@ -130,7 +128,7 @@ export const seedLoanApplications = (count = 50, { silent = false } = {}) => {
     const createdOffsetDays = Math.floor(Math.random() * 60);
     const createdAt = new Date(Date.now() - createdOffsetDays * 24 * 60 * 60 * 1000).toISOString();
 
-    const application = createLoanApplication({
+    const application = await createLoanApplication({
       name: fullName,
       email: randomEmail(fullName),
       phone: randomPhone(),
@@ -145,21 +143,20 @@ export const seedLoanApplications = (count = 50, { silent = false } = {}) => {
       created_at: createdAt
     });
 
-    VerificationService.processApplication(application.application_id);
+    await VerificationService.processApplication(application.application_id);
     log(
       `[${i + 1}/${count}] ${application.application_id} -> ${application.region}/${application.country}`
     );
   }
 
-  const summary = db
-    .prepare(
-      `SELECT
-          COUNT(*) as total,
-          SUM(CASE WHEN final_status = 'APPROVED' THEN 1 ELSE 0 END) AS approved,
-          SUM(CASE WHEN final_status = 'REJECTED' THEN 1 ELSE 0 END) AS rejected
-       FROM loan_applications`
-    )
-    .get();
+  const { rows } = await query(
+    `SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN final_status = 'APPROVED' THEN 1 ELSE 0 END) AS approved,
+        SUM(CASE WHEN final_status = 'REJECTED' THEN 1 ELSE 0 END) AS rejected
+     FROM loan_applications`
+  );
+  const summary = rows[0];
 
   if (!silent) {
     log("\nSummary:");
@@ -167,13 +164,14 @@ export const seedLoanApplications = (count = 50, { silent = false } = {}) => {
     log(`  Approved: ${summary.approved}`);
     log(`  Rejected: ${summary.rejected}`);
 
-    REGIONS.forEach((region) => {
-      const { count: regionCount = 0 } =
-        db
-          .prepare("SELECT COUNT(*) as count FROM loan_applications WHERE region = ?")
-          .get(region) || {};
-      log(`  ${region}: ${regionCount}`);
-    });
+    for (const region of REGIONS) {
+      const result = await query(
+        "SELECT COUNT(*) as count FROM loan_applications WHERE region = $1",
+        [region]
+      );
+      const countByRegion = result.rows[0].count;
+      log(`  ${region}: ${countByRegion}`);
+    }
 
     log("============================================================");
     log("Loan application seeding complete");
@@ -188,5 +186,6 @@ const isCliRun =
 if (isCliRun) {
   const argCount = Number(process.argv[2]);
   const count = Number.isFinite(argCount) && argCount > 0 ? argCount : 50;
-  seedLoanApplications(count);
+  await seedLoanApplications(count);
+  process.exit(0);
 }

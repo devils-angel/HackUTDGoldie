@@ -37,13 +37,13 @@ Status values: `PENDING`, `APPROVED`, `REJECTED`
 #### GET /
 Health check endpoint
 ```bash
-curl http://localhost:5002/
+curl http://localhost:5003/
 ```
 
 #### POST /register
 Register a new user
 ```bash
-curl -X POST http://localhost:5002/register \
+curl -X POST http://localhost:5003/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -55,7 +55,7 @@ curl -X POST http://localhost:5002/register \
 #### POST /login
 User login
 ```bash
-curl -X POST http://localhost:5002/login \
+curl -X POST http://localhost:5003/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
@@ -66,13 +66,13 @@ curl -X POST http://localhost:5002/login \
 #### GET /data
 Get stock market data
 ```bash
-curl http://localhost:5002/data
+curl http://localhost:5003/data
 ```
 
 #### POST /loan
 Simple loan eligibility check (original functionality)
 ```bash
-curl -X POST http://localhost:5002/loan \
+curl -X POST http://localhost:5003/loan \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Jane Smith",
@@ -110,7 +110,7 @@ Submit a new loan application with complete verification workflow
 
 **Example:**
 ```bash
-curl -X POST http://localhost:5002/loan-application/submit \
+curl -X POST http://localhost:5003/loan-application/submit \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -148,7 +148,7 @@ Get status of a specific application
 
 **Example:**
 ```bash
-curl http://localhost:5002/loan-application/status/LOAN-20241108-ABC12345
+curl http://localhost:5003/loan-application/status/LOAN-20241108-ABC12345
 ```
 
 #### GET /loan-application/list
@@ -162,24 +162,46 @@ List all loan applications with optional filtering
 **Examples:**
 ```bash
 # Get all applications
-curl http://localhost:5002/loan-application/list
+curl http://localhost:5003/loan-application/list
 
 # Get approved applications only
-curl http://localhost:5002/loan-application/list?status=APPROVED
+curl http://localhost:5003/loan-application/list?status=APPROVED
 
 # Get applications from APAC region
-curl http://localhost:5002/loan-application/list?region=APAC
+curl http://localhost:5003/loan-application/list?region=APAC
 
 # Get first 10 rejected applications
-curl http://localhost:5002/loan-application/list?status=REJECTED&limit=10
+curl http://localhost:5003/loan-application/list?status=REJECTED&limit=10
 ```
+
+#### Manual Review Endpoints
+
+- **GET /loan-application/pending** – List every submission awaiting manual approval.
+
+  ```bash
+  curl http://localhost:5003/loan-application/pending
+  ```
+
+- **POST /loan-application/{application_id}/approve** – Approve a pending request and trigger automated verification.
+
+  ```bash
+  curl -X POST http://localhost:5003/loan-application/LOAN-20250101-ABCD1234/approve
+  ```
+
+- **POST /loan-application/{application_id}/reject** – Reject a pending request (optional JSON body `{ "reason": "..." }`).
+
+  ```bash
+  curl -X POST http://localhost:5003/loan-application/LOAN-20250101-ABCD1234/reject \
+    -H "Content-Type: application/json" \
+    -d '{"reason":"Bank statements missing"}'
+  ```
 
 #### POST /loan-application/reprocess/<application_id>
 Reprocess an application through the verification workflow
 
 **Example:**
 ```bash
-curl -X POST http://localhost:5002/loan-application/reprocess/LOAN-20241108-ABC12345
+curl -X POST http://localhost:5003/loan-application/reprocess/LOAN-20241108-ABC12345
 ```
 
 ### 3. Dashboard Analytics Routes
@@ -200,7 +222,7 @@ Get overall statistics
 
 **Example:**
 ```bash
-curl http://localhost:5002/dashboard/overview
+curl http://localhost:5003/dashboard/overview
 ```
 
 #### GET /dashboard/by-region
@@ -231,7 +253,7 @@ Get application statistics grouped by region
 
 **Example:**
 ```bash
-curl http://localhost:5002/dashboard/by-region
+curl http://localhost:5003/dashboard/by-region
 ```
 
 #### GET /dashboard/by-country
@@ -255,7 +277,7 @@ Get application statistics grouped by country
 
 **Example:**
 ```bash
-curl http://localhost:5002/dashboard/by-country
+curl http://localhost:5003/dashboard/by-country
 ```
 
 #### GET /dashboard/verification-stats
@@ -286,7 +308,7 @@ Get statistics on each verification stage
 
 **Example:**
 ```bash
-curl http://localhost:5002/dashboard/verification-stats
+curl http://localhost:5003/dashboard/verification-stats
 ```
 
 #### GET /dashboard/financial-metrics
@@ -305,7 +327,7 @@ Get financial metrics for approved applications
 
 **Example:**
 ```bash
-curl http://localhost:5002/dashboard/financial-metrics
+curl http://localhost:5003/dashboard/financial-metrics
 ```
 
 #### GET /dashboard/timeline
@@ -331,7 +353,7 @@ Get application trends over time
 
 **Example:**
 ```bash
-curl http://localhost:5002/dashboard/timeline?days=7
+curl http://localhost:5003/dashboard/timeline?days=7
 ```
 
 ## Verification Logic
@@ -369,7 +391,7 @@ All three stages (KYC, Compliance, Eligibility) must be APPROVED for final appro
 docker-compose up --build
 ```
 
-2. The application will be available at `http://localhost:5002`
+2. The application will be available at `http://localhost:5003`
 
 ### Generate Sample Data
 
@@ -388,7 +410,7 @@ python generate_sample_data.py
 
 ```bash
 # Submit a loan application
-curl -X POST http://localhost:5002/loan-application/submit \
+curl -X POST http://localhost:5003/loan-application/submit \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test User",
@@ -404,12 +426,12 @@ curl -X POST http://localhost:5002/loan-application/submit \
   }'
 
 # Check the application status (replace with actual application_id from response)
-curl http://localhost:5002/loan-application/status/LOAN-20241108-XXXXXXXX
+curl http://localhost:5003/loan-application/status/LOAN-20241108-XXXXXXXX
 
 # View dashboard analytics
-curl http://localhost:5002/dashboard/overview
-curl http://localhost:5002/dashboard/by-region
-curl http://localhost:5002/dashboard/verification-stats
+curl http://localhost:5003/dashboard/overview
+curl http://localhost:5003/dashboard/by-region
+curl http://localhost:5003/dashboard/verification-stats
 ```
 
 ## Dashboard Visualization
@@ -444,7 +466,7 @@ All endpoints return appropriate HTTP status codes:
 - The system processes applications synchronously in the POC. In production, use asynchronous processing (Celery, Kafka, etc.)
 - Email and alert notifications are simulated (logged to console). Integrate with actual email service in production.
 - The verification logic uses simplified rules for POC. Implement real KYC, compliance, and credit check integrations in production.
-- Database uses SQLite for POC. Use PostgreSQL/MySQL for production.
+- Database uses PostgreSQL (configure credentials via `.env`). For other environments, update `db.js` accordingly.
 
 ## Future Enhancements
 

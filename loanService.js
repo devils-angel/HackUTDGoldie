@@ -1,7 +1,7 @@
+import { query } from "./db.js";
 import { v4 as uuidv4 } from "uuid";
-import db from "./db.js";
 
-const BOOL_FIELDS = [
+const boolFields = [
   "documents_uploaded",
   "political_connection",
   "senior_relative",
@@ -9,7 +9,7 @@ const BOOL_FIELDS = [
   "email_sent"
 ];
 
-const ISO_FIELDS = [
+const isoFields = [
   "kyc_verified_at",
   "compliance_verified_at",
   "eligibility_verified_at",
@@ -18,7 +18,9 @@ const ISO_FIELDS = [
   "updated_at"
 ];
 
-const DEFAULT_DOCUMENTS = [
+const numericFields = ["income", "debt", "loan_amount", "dti_ratio"];
+
+const defaultDocuments = [
   "ID_Proof",
   "Income_Statement",
   "Address_Proof",
@@ -32,67 +34,64 @@ const formatIdDate = (date) =>
 
 export const mapLoanRow = (row) => {
   if (!row) return null;
-
   const mapped = { ...row };
-  BOOL_FIELDS.forEach((field) => {
+
+  boolFields.forEach((field) => {
     if (field in mapped) {
       mapped[field] = Boolean(mapped[field]);
     }
   });
 
-  ISO_FIELDS.forEach((field) => {
+  isoFields.forEach((field) => {
     if (mapped[field]) {
-      const value = mapped[field];
-      mapped[field] = value.includes("Z")
-        ? value
-        : new Date(value).toISOString();
+      mapped[field] = new Date(mapped[field]).toISOString();
     }
   });
+
+  numericFields.forEach((field) => {
+    if (mapped[field] != null) {
+      mapped[field] = Number(mapped[field]);
+    }
+  });
+
+  if (mapped.document_list) {
+    try {
+      mapped.document_list = JSON.parse(mapped.document_list);
+    } catch {
+      mapped.document_list = [];
+    }
+  } else {
+    mapped.document_list = [];
+  }
 
   return mapped;
 };
 
-export const getLoanApplicationRow = (applicationId) =>
-  db
-    .prepare("SELECT * FROM loan_applications WHERE application_id = ?")
-    .get(applicationId);
-
-export const getLoanApplicationByApplicationId = (applicationId) =>
-  mapLoanRow(getLoanApplicationRow(applicationId));
-
-export const updateLoanApplicationById = (id, fields) => {
-  if (!fields || !Object.keys(fields).length) return;
-
-  const payload = { ...fields };
-  BOOL_FIELDS.forEach((field) => {
-    if (field in payload) {
-      payload[field] = payload[field] ? 1 : 0;
-    }
-  });
-
-  const assignments = Object.keys(payload).map((key) => `${key} = @${key}`);
-  const stmt = db.prepare(
-    `UPDATE loan_applications
-     SET ${assignments.join(", ")}, updated_at = CURRENT_TIMESTAMP
-     WHERE id = @id`
+export const getLoanApplicationRow = async (applicationId) => {
+  const { rows } = await query(
+    "SELECT * FROM loan_applications WHERE application_id = $1",
+    [applicationId]
   );
-  stmt.run({ ...payload, id });
+  return rows[0] || null;
 };
 
-export const createLoanApplication = (payload) => {
+export const getLoanApplicationByApplicationId = async (applicationId) =>
+  mapLoanRow(await getLoanApplicationRow(applicationId));
+
+export const createLoanApplication = async (payload) => {
   const now = new Date();
   const applicationId =
     payload.application_id ||
     `LOAN-${formatIdDate(now)}-${uuidv4().slice(0, 8).toUpperCase()}`;
 
-  const createdAt = payload.created_at || now.toISOString();
   const documents =
     payload.documents && payload.documents.length
       ? payload.documents
-      : DEFAULT_DOCUMENTS;
+      : defaultDocuments;
 
-  const insert = db.prepare(
-    `INSERT INTO loan_applications (
+  const { rows } = await query(
+    `
+    INSERT INTO loan_applications (
       application_id,
       name,
       email,
@@ -106,94 +105,135 @@ export const createLoanApplication = (payload) => {
       loan_purpose,
       documents_uploaded,
       document_list,
-      created_at,
-      updated_at
+      review_status
     ) VALUES (
-      @application_id,
-      @name,
-      @email,
-      @phone,
-      @region,
-      @country,
-      @income,
-      @debt,
-      @credit_score,
-      @loan_amount,
-      @loan_purpose,
-      @documents_uploaded,
-      @document_list,
-      @created_at,
-      @updated_at
-    )`
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+    )
+    RETURNING *
+  `,
+    [
+      applicationId,
+      payload.name,
+      payload.email,
+      payload.phone || "",
+      payload.region.toUpperCase(),
+      payload.country,
+      Number(payload.income),
+      Number(payload.debt),
+      Number(payload.credit_score),
+      Number(payload.loan_amount),
+      payload.loan_purpose || "",
+      payload.documents_uploaded !== false,
+      JSON.stringify(documents),
+      (payload.review_status || "PENDING").toUpperCase()
+    ]
   );
 
-  insert.run({
-    application_id: applicationId,
-    name: payload.name,
-    email: payload.email,
-    phone: payload.phone || "",
-    region: payload.region.toUpperCase(),
-    country: payload.country,
-    income: Number(payload.income),
-    debt: Number(payload.debt),
-    credit_score: Number(payload.credit_score),
-    loan_amount: Number(payload.loan_amount),
-    loan_purpose: payload.loan_purpose || "",
-    documents_uploaded: payload.documents_uploaded === false ? 0 : 1,
-    document_list: JSON.stringify(documents),
-    created_at: createdAt,
-    updated_at: createdAt
-  });
-
-  return getLoanApplicationByApplicationId(applicationId);
+  return mapLoanRow(rows[0]);
 };
 
-export const listLoanApplications = ({ status, region, limit = 100 }) => {
-  let query = "SELECT * FROM loan_applications";
+export const listLoanApplications = async ({
+  status,
+  region,
+  reviewStatus,
+  limit = 100
+}) => {
+  let baseQuery = "SELECT * FROM loan_applications";
   const clauses = [];
-  const params = {};
+  const values = [];
 
   if (status) {
-    clauses.push("final_status = @status");
-    params.status = status.toUpperCase();
+    values.push(status.toUpperCase());
+    clauses.push(`final_status = $${values.length}`);
   }
 
   if (region) {
-    clauses.push("region = @region");
-    params.region = region.toUpperCase();
+    values.push(region.toUpperCase());
+    clauses.push(`region = $${values.length}`);
+  }
+
+  if (reviewStatus) {
+    values.push(reviewStatus.toUpperCase());
+    clauses.push(`review_status = $${values.length}`);
   }
 
   if (clauses.length) {
-    query += ` WHERE ${clauses.join(" AND ")}`;
+    baseQuery += ` WHERE ${clauses.join(" AND ")}`;
   }
 
-  query += " ORDER BY datetime(created_at) DESC LIMIT @limit";
-  params.limit = limit;
+  values.push(limit);
+  baseQuery += ` ORDER BY created_at DESC LIMIT $${values.length}`;
 
-  const rows = db.prepare(query).all(params);
+  const { rows } = await query(baseQuery, values);
   return rows.map(mapLoanRow);
 };
 
-export const resetApplicationStatuses = (applicationId) => {
-  const stmt = db.prepare(
-    `UPDATE loan_applications
-     SET kyc_status = 'PENDING',
-         compliance_status = 'PENDING',
-         eligibility_status = 'PENDING',
-         final_status = 'PENDING',
-         kyc_verified_at = NULL,
-         compliance_verified_at = NULL,
-         eligibility_verified_at = NULL,
-         kyc_remarks = NULL,
-         compliance_remarks = NULL,
-         eligibility_remarks = NULL,
-         final_decision_at = NULL,
-         final_remarks = NULL,
-         dti_ratio = NULL,
-         updated_at = CURRENT_TIMESTAMP
-     WHERE application_id = ?`
+export const resetApplicationStatuses = async (applicationId) => {
+  await query(
+    `
+    UPDATE loan_applications
+    SET kyc_status = 'PENDING',
+        compliance_status = 'PENDING',
+        eligibility_status = 'PENDING',
+        final_status = 'PENDING',
+        review_status = 'PENDING',
+        kyc_verified_at = NULL,
+        compliance_verified_at = NULL,
+        eligibility_verified_at = NULL,
+        kyc_remarks = NULL,
+        compliance_remarks = NULL,
+        eligibility_remarks = NULL,
+        final_decision_at = NULL,
+        final_remarks = NULL,
+        dti_ratio = NULL,
+        updated_at = NOW()
+    WHERE application_id = $1
+  `,
+    [applicationId]
   );
 
-  stmt.run(applicationId);
   return getLoanApplicationByApplicationId(applicationId);
+};
+
+export const updateLoanFinalStatus = async (id, finalStatus) => {
+  await query(
+    `
+    UPDATE loan_applications
+    SET final_status = $1,
+        updated_at = NOW()
+    WHERE id = $2
+  `,
+    [finalStatus.toUpperCase(), id]
+  );
+};
+
+export const updateLoanApplicationById = async (id, fields) => {
+  const entries = Object.entries(fields);
+  if (!entries.length) return;
+
+  const assignments = [];
+  const values = [];
+
+  entries.forEach(([key, value], index) => {
+    assignments.push(`${key} = $${index + 1}`);
+    if (boolFields.includes(key)) {
+      values.push(Boolean(value));
+    } else if (key === "document_list" && Array.isArray(value)) {
+      values.push(JSON.stringify(value));
+    } else {
+      values.push(value);
+    }
+  });
+
+  values.push(id);
+
+  await query(
+    `
+    UPDATE loan_applications
+    SET ${assignments.join(", ")},
+        updated_at = NOW()
+    WHERE id = $${values.length}
+  `,
+    values
+  );
 };

@@ -7,8 +7,6 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "dev:memory": "IN_MEMORY_DB=true nodemon server.js",
-    "start:memory": "IN_MEMORY_DB=true node server.js",
     "seed:stocks": "node seedData.js",
     "seed:loans": "node seedLoanData.js 50",
     "seed": "npm run seed:stocks && npm run seed:loans",
@@ -21,8 +19,9 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "csv-parse": "^5.5.4",
+    "dotenv": "^16.4.7",
     "express": "^4.19.2",
-    "better-sqlite3": "^9.6.0",
+    "pg": "^8.13.1",
     "uuid": "^11.0.3"
   },
   "devDependencies": {

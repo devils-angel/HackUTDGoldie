@@ -1,87 +1,105 @@
-import path from "path";
-import Database from "better-sqlite3";
 import { fileURLToPath } from "url";
+import path from "path";
+import dotenv from "dotenv";
+import { Pool } from "pg";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, ".env") });
 
-const useInMemoryDb = process.env.IN_MEMORY_DB === "true";
-const dbPath = path.join(__dirname, "database.db");
-const db = useInMemoryDb ? new Database(":memory:") : new Database(dbPath);
+const {
+  DATABASE_URL,
+  PGHOST = "localhost",
+  PGPORT = "5432",
+  PGUSER = "postgres",
+  PGPASSWORD = "Pra@1ful",
+  PGDATABASE = "postgres",
+  PGSSL = "false"
+} = process.env;
 
-if (useInMemoryDb) {
-  console.warn("[DB] Running in-memory SQLite database. Data resets on restart.");
-} else {
-  db.pragma("journal_mode = WAL");
+const connectionOptions = DATABASE_URL
+  ? { connectionString: DATABASE_URL }
+  : {
+      host: PGHOST,
+      port: Number(PGPORT),
+      user: PGUSER,
+      password: PGPASSWORD,
+      database: PGDATABASE
+    };
+
+if (PGSSL && PGSSL.toLowerCase() === "true") {
+  connectionOptions.ssl = { rejectUnauthorized: false };
 }
-db.pragma("foreign_keys = ON");
 
-const tableStatements = [
-  `CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+const pool = new Pool(connectionOptions);
+
+const runMigrations = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
+      email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'CLIENT' CHECK (role IN ('ADMIN','VENDOR','CLIENT')),
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`,
-  `CREATE TABLE IF NOT EXISTS stocks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS stocks (
+      id SERIAL PRIMARY KEY,
       symbol TEXT NOT NULL,
       name TEXT NOT NULL,
-      last REAL NOT NULL,
-      change REAL NOT NULL,
-      percent_change REAL NOT NULL,
-      price_volume INTEGER NOT NULL,
-      time TEXT NOT NULL
-    )`,
-  `CREATE TABLE IF NOT EXISTS loan_applications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      application_id TEXT NOT NULL UNIQUE,
+      last NUMERIC NOT NULL,
+      change NUMERIC NOT NULL,
+      percent_change NUMERIC NOT NULL,
+      price_volume BIGINT NOT NULL,
+      time DATE NOT NULL
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS loan_applications (
+      id SERIAL PRIMARY KEY,
+      application_id TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
       email TEXT NOT NULL,
       phone TEXT,
       region TEXT NOT NULL,
       country TEXT NOT NULL,
-      income REAL NOT NULL,
-      debt REAL NOT NULL,
+      income NUMERIC NOT NULL,
+      debt NUMERIC NOT NULL,
       credit_score INTEGER NOT NULL,
-      loan_amount REAL NOT NULL,
+      loan_amount NUMERIC NOT NULL,
       loan_purpose TEXT,
       kyc_status TEXT DEFAULT 'PENDING',
-      kyc_verified_at TEXT,
+      kyc_verified_at TIMESTAMPTZ,
       kyc_remarks TEXT,
       compliance_status TEXT DEFAULT 'PENDING',
-      compliance_verified_at TEXT,
+      compliance_verified_at TIMESTAMPTZ,
       compliance_remarks TEXT,
-      political_connection INTEGER DEFAULT 0,
-      senior_relative INTEGER DEFAULT 0,
+      political_connection BOOLEAN DEFAULT FALSE,
+      senior_relative BOOLEAN DEFAULT FALSE,
       eligibility_status TEXT DEFAULT 'PENDING',
-      eligibility_verified_at TEXT,
+      eligibility_verified_at TIMESTAMPTZ,
       eligibility_remarks TEXT,
-      dti_ratio REAL,
+      dti_ratio NUMERIC,
       final_status TEXT DEFAULT 'PENDING',
-      final_decision_at TEXT,
+      final_decision_at TIMESTAMPTZ,
       final_remarks TEXT,
-      documents_uploaded INTEGER DEFAULT 0,
+      documents_uploaded BOOLEAN DEFAULT FALSE,
       document_list TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      alert_sent INTEGER DEFAULT 0,
-      email_sent INTEGER DEFAULT 0
-    )`
-];
+      review_status TEXT NOT NULL DEFAULT 'PENDING' CHECK (review_status IN ('PENDING','APPROVED','REJECTED')),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      alert_sent BOOLEAN DEFAULT FALSE,
+      email_sent BOOLEAN DEFAULT FALSE
+    )
+  `);
+};
 
-tableStatements.forEach((statement) => db.exec(statement));
+await runMigrations();
 
-try {
-  db.exec(
-    "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'CLIENT' CHECK (role IN ('ADMIN','VENDOR','CLIENT'))"
-  );
-} catch (err) {
-  if (!String(err.message).includes("duplicate column name")) {
-    throw err;
-  }
-}
-
-export default db;
+export const query = (text, params) => pool.query(text, params);
+export const getClient = () => pool.connect();
+export default { query, pool };

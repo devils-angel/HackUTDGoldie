@@ -1,20 +1,22 @@
 import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
-import db from "./db.js";
 import VerificationService from "./verificationService.js";
 import {
   createLoanApplication,
   getLoanApplicationByApplicationId,
   listLoanApplications,
   resetApplicationStatuses,
-  getLoanApplicationRow
+  getLoanApplicationRow,
+  updateLoanApplicationById,
+  mapLoanRow
 } from "./loanService.js";
 import { seedStocks } from "./seedData.js";
 import { seedLoanApplications } from "./seedLoanData.js";
+import { query } from "./db.js";
 
 const PORT = process.env.PORT || 5003;
-const useInMemoryDb = process.env.IN_MEMORY_DB === "true";
+const autoSeedOnStart = process.env.AUTO_SEED === "true";
 const USER_ROLES = ["ADMIN", "VENDOR", "CLIENT"];
 const normalizeRole = (value) =>
   (value || "CLIENT").toString().trim().toUpperCase();
@@ -52,17 +54,15 @@ app.post(
       });
     }
 
-    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
-    if (existing) {
+    const existing = await query("SELECT id FROM users WHERE email = $1", [email]);
+    if (existing.rows.length) {
       return res.status(409).json({ error: "Email already registered" });
     }
 
     const hashed = await bcrypt.hash(password, 12);
-    db.prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)").run(
-      name,
-      email,
-      hashed,
-      role
+    await query(
+      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4)",
+      [name, email, hashed, role]
     );
 
     return res.status(201).json({
@@ -81,7 +81,9 @@ app.post(
       return res.status(400).json({ error: "Missing email or password" });
     }
 
-    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+    const { rows } = await query("SELECT * FROM users WHERE email = $1", [email]);
+    // console.log(rows);
+    const user = rows[0];
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -103,15 +105,15 @@ app.post(
   })
 );
 
-app.get("/data", (req, res) => {
-  const rows = db
-    .prepare(
+app.get(
+  "/data",
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(
       "SELECT id, symbol, name, last, change, percent_change, price_volume, time FROM stocks ORDER BY id ASC"
-    )
-    .all()
-    .map(stockMapper);
-  res.json(rows);
-});
+    );
+    res.json(rows.map(stockMapper));
+  })
+);
 
 app.post("/loan", (req, res) => {
   const { name, email, income, debt, credit_score: creditScore } = req.body || {};
@@ -175,101 +177,204 @@ app.post(
         .json({ error: "Invalid numeric values", invalid: invalidNumeric });
     }
 
-    const application = createLoanApplication(data);
-    VerificationService.processApplication(application.application_id);
-    const refreshed = getLoanApplicationByApplicationId(application.application_id);
+    const application = await createLoanApplication(data);
 
     return res.status(201).json({
-      message: "Loan application submitted and processed successfully",
+      message: "Loan application submitted and pending manual review",
+      application: {
+        application_id: application.application_id,
+        review_status: application.review_status,
+        submitted_at: application.created_at
+      }
+    });
+  })
+);
+
+app.get(
+  "/loan-application/status/:applicationId",
+  asyncHandler(async (req, res) => {
+    const application = await getLoanApplicationByApplicationId(
+      req.params.applicationId
+    );
+    if (!application) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+    return res.json(application);
+  })
+);
+
+app.get(
+  "/loan-application/list",
+  asyncHandler(async (req, res) => {
+    const { status, region, review_status: reviewStatus } = req.query;
+    const limit = Number(req.query.limit) || 100;
+    const applications = await listLoanApplications({ status, region, reviewStatus, limit });
+    return res.json({ total: applications.length, applications });
+  })
+);
+
+app.get(
+  "/loan-application/user",
+  asyncHandler(async (req, res) => {
+    const { email, limit = 50 } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const { rows } = await query(
+      `SELECT * FROM loan_applications
+       WHERE email = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [email, Number(limit)]
+    );
+    return res.json({
+      applications: rows.map(mapLoanRow)
+    });
+  })
+);
+
+app.get(
+  "/loan-application/pending",
+  asyncHandler(async (req, res) => {
+    const limit = Number(req.query.limit) || 100;
+    const applications = await listLoanApplications({ reviewStatus: "PENDING", limit });
+    return res.json({ total: applications.length, applications });
+  })
+);
+
+app.post(
+  "/loan-application/:applicationId/approve",
+  asyncHandler(async (req, res) => {
+    const { applicationId } = req.params;
+    const application = await getLoanApplicationRow(applicationId);
+    if (!application) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+    if (application.review_status !== "PENDING") {
+      return res.status(400).json({ error: "Application is not pending review" });
+    }
+
+    await updateLoanApplicationById(application.id, {
+      review_status: "APPROVED",
+      final_status: "APPROVED"
+    });
+    VerificationService.processApplication(applicationId);
+    const updated = await getLoanApplicationByApplicationId(applicationId);
+    return res.json({
+      message: "Application approved and processed",
+      application: updated
+    });
+  })
+);
+
+app.post(
+  "/loan-application/:applicationId/reject",
+  asyncHandler(async (req, res) => {
+    const { applicationId } = req.params;
+    const { reason } = req.body || {};
+    const application = await getLoanApplicationRow(applicationId);
+    if (!application) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+    if (application.review_status !== "PENDING") {
+      return res.status(400).json({ error: "Application is not pending review" });
+    }
+
+    const finalRemarks = reason?.trim()
+      ? reason.trim()
+      : "Application rejected during manual review";
+    await updateLoanApplicationById(application.id, {
+      final_status: "REJECTED",
+      final_remarks: finalRemarks,
+      final_decision_at: new Date().toISOString(),
+      review_status: "REJECTED"
+    });
+
+    const updated = await getLoanApplicationByApplicationId(applicationId);
+    await VerificationService.sendNotification(updated);
+
+    return res.json({
+      message: "Application rejected",
+      application: updated
+    });
+  })
+);
+
+app.post(
+  "/loan-application/reprocess/:applicationId",
+  asyncHandler(async (req, res) => {
+    const application = await getLoanApplicationRow(req.params.applicationId);
+    if (!application) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+
+    await resetApplicationStatuses(req.params.applicationId);
+    await VerificationService.processApplication(req.params.applicationId);
+    const refreshed = await getLoanApplicationByApplicationId(req.params.applicationId);
+
+    return res.json({
+      message: "Application reprocessed successfully",
       application: refreshed
     });
   })
 );
 
-app.get("/loan-application/status/:applicationId", (req, res) => {
-  const application = getLoanApplicationByApplicationId(req.params.applicationId);
-  if (!application) {
-    return res.status(404).json({ error: "Application not found" });
-  }
-  return res.json(application);
-});
-
-app.get("/loan-application/list", (req, res) => {
-  const { status, region } = req.query;
-  const limit = Number(req.query.limit) || 100;
-  const applications = listLoanApplications({ status, region, limit });
-  return res.json({ total: applications.length, applications });
-});
-
-app.post("/loan-application/reprocess/:applicationId", (req, res) => {
-  const application = getLoanApplicationRow(req.params.applicationId);
-  if (!application) {
-    return res.status(404).json({ error: "Application not found" });
-  }
-
-  resetApplicationStatuses(req.params.applicationId);
-  VerificationService.processApplication(req.params.applicationId);
-  const refreshed = getLoanApplicationByApplicationId(req.params.applicationId);
-
-  return res.json({
-    message: "Application reprocessed successfully",
-    application: refreshed
-  });
-});
-
-app.get("/dashboard/overview", (req, res) => {
-  const stats = db
-    .prepare(
+app.get(
+  "/dashboard/overview",
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(
       `SELECT
         (SELECT COUNT(*) FROM loan_applications) AS total,
         (SELECT COUNT(*) FROM loan_applications WHERE final_status = 'APPROVED') AS approved,
         (SELECT COUNT(*) FROM loan_applications WHERE final_status = 'REJECTED') AS rejected,
         (SELECT COUNT(*) FROM loan_applications WHERE final_status = 'PENDING') AS pending`
-    )
-    .get();
+    );
+    const stats = rows[0];
+    const approvalRate =
+      stats.total > 0 ? Number(((stats.approved / stats.total) * 100).toFixed(2)) : 0;
 
-  const approvalRate =
-    stats.total > 0 ? Number(((stats.approved / stats.total) * 100).toFixed(2)) : 0;
+    return res.json({
+      total_applications: Number(stats.total),
+      approved: Number(stats.approved),
+      rejected: Number(stats.rejected),
+      pending: Number(stats.pending),
+      approval_rate: approvalRate
+    });
+  })
+);
 
-  return res.json({
-    total_applications: stats.total,
-    approved: stats.approved,
-    rejected: stats.rejected,
-    pending: stats.pending,
-    approval_rate: approvalRate
-  });
-});
-
-app.get("/dashboard/by-region", (req, res) => {
-  const rows = db
-    .prepare(
+app.get(
+  "/dashboard/by-region",
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(
       `SELECT region, final_status, COUNT(*) as count
        FROM loan_applications
        GROUP BY region, final_status`
-    )
-    .all();
+    );
 
-  const regionMap = {};
-  rows.forEach((row) => {
-    if (!regionMap[row.region]) {
-      regionMap[row.region] = {
-        region: row.region,
-        total: 0,
-        approved: 0,
-        rejected: 0,
-        pending: 0
-      };
-    }
-    regionMap[row.region].total += row.count;
-    regionMap[row.region][row.final_status.toLowerCase()] = row.count;
-  });
+    const regionMap = {};
+    rows.forEach((row) => {
+      if (!regionMap[row.region]) {
+        regionMap[row.region] = {
+          region: row.region,
+          total: 0,
+          approved: 0,
+          rejected: 0,
+          pending: 0
+        };
+      }
+      regionMap[row.region].total += Number(row.count);
+      regionMap[row.region][row.final_status.toLowerCase()] = Number(row.count);
+    });
 
-  return res.json({ regions: Object.values(regionMap) });
-});
+    return res.json({ regions: Object.values(regionMap) });
+  })
+);
 
-app.get("/dashboard/by-country", (req, res) => {
-  const rows = db
-    .prepare(
+app.get(
+  "/dashboard/by-country",
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(
       `SELECT country,
               region,
               COUNT(*) as total,
@@ -277,73 +382,79 @@ app.get("/dashboard/by-country", (req, res) => {
               SUM(CASE WHEN final_status = 'REJECTED' THEN 1 ELSE 0 END) AS rejected
        FROM loan_applications
        GROUP BY country, region`
-    )
-    .all();
+    );
 
-  return res.json({
-    countries: rows.map((row) => ({
-      country: row.country,
-      region: row.region,
-      total: row.total,
-      approved: row.approved,
-      rejected: row.rejected
-    }))
-  });
-});
+    return res.json({
+      countries: rows.map((row) => ({
+        country: row.country,
+        region: row.region,
+        total: Number(row.total),
+        approved: Number(row.approved),
+        rejected: Number(row.rejected)
+      }))
+    });
+  })
+);
 
-app.get("/dashboard/verification-stats", (req, res) => {
-  const counts = (column) =>
-    db
-      .prepare(
+app.get(
+  "/dashboard/verification-stats",
+  asyncHandler(async (req, res) => {
+    const counts = async (column) => {
+      const { rows } = await query(
         `SELECT
            SUM(CASE WHEN ${column} = 'APPROVED' THEN 1 ELSE 0 END) AS approved,
            SUM(CASE WHEN ${column} = 'REJECTED' THEN 1 ELSE 0 END) AS rejected
          FROM loan_applications`
-      )
-      .get();
+      );
+      return {
+        approved: Number(rows[0].approved || 0),
+        rejected: Number(rows[0].rejected || 0)
+      };
+    };
 
-  const kyc = counts("kyc_status");
-  const compliance = counts("compliance_status");
-  const eligibility = counts("eligibility_status");
+    const kyc = await counts("kyc_status");
+    const compliance = await counts("compliance_status");
+    const eligibility = await counts("eligibility_status");
 
-  const extras = db
-    .prepare(
+    const { rows: extrasRows } = await query(
       `SELECT
-        SUM(political_connection) as political_connections,
-        SUM(senior_relative) as senior_relatives
+        SUM(CASE WHEN political_connection THEN 1 ELSE 0 END) as political_connections,
+        SUM(CASE WHEN senior_relative THEN 1 ELSE 0 END) as senior_relatives
        FROM loan_applications`
-    )
-    .get();
+    );
+    const extras = extrasRows[0];
 
-  const passRate = (approved, rejected) => {
-    const total = approved + rejected;
-    return total > 0 ? Number(((approved / total) * 100).toFixed(2)) : 0;
-  };
+    const passRate = (approved, rejected) => {
+      const total = approved + rejected;
+      return total > 0 ? Number(((approved / total) * 100).toFixed(2)) : 0;
+    };
 
-  return res.json({
-    kyc: {
-      approved: kyc.approved,
-      rejected: kyc.rejected,
-      pass_rate: passRate(kyc.approved, kyc.rejected)
-    },
-    compliance: {
-      approved: compliance.approved,
-      rejected: compliance.rejected,
-      pass_rate: passRate(compliance.approved, compliance.rejected),
-      political_connections: extras.political_connections || 0,
-      senior_relatives: extras.senior_relatives || 0
-    },
-    eligibility: {
-      approved: eligibility.approved,
-      rejected: eligibility.rejected,
-      pass_rate: passRate(eligibility.approved, eligibility.rejected)
-    }
-  });
-});
+    return res.json({
+      kyc: {
+        approved: kyc.approved,
+        rejected: kyc.rejected,
+        pass_rate: passRate(kyc.approved, kyc.rejected)
+      },
+      compliance: {
+        approved: compliance.approved,
+        rejected: compliance.rejected,
+        pass_rate: passRate(compliance.approved, compliance.rejected),
+        political_connections: Number(extras.political_connections || 0),
+        senior_relatives: Number(extras.senior_relatives || 0)
+      },
+      eligibility: {
+        approved: eligibility.approved,
+        rejected: eligibility.rejected,
+        pass_rate: passRate(eligibility.approved, eligibility.rejected)
+      }
+    });
+  })
+);
 
-app.get("/dashboard/financial-metrics", (req, res) => {
-  const row = db
-    .prepare(
+app.get(
+  "/dashboard/financial-metrics",
+  asyncHandler(async (req, res) => {
+    const { rows } = await query(
       `SELECT
          AVG(credit_score) AS avg_credit_score,
          AVG(dti_ratio) AS avg_dti,
@@ -352,25 +463,27 @@ app.get("/dashboard/financial-metrics", (req, res) => {
          AVG(income) AS avg_income
        FROM loan_applications
        WHERE final_status = 'APPROVED'`
-    )
-    .get();
+    );
+    const row = rows[0];
 
-  const format = (value, precision = 2) =>
-    value != null ? Number(Number(value).toFixed(precision)) : 0;
+    const format = (value, precision = 2) =>
+      value != null ? Number(Number(value).toFixed(precision)) : 0;
 
-  return res.json({
-    average_credit_score: format(row.avg_credit_score),
-    average_dti_ratio: format(row.avg_dti, 3),
-    average_loan_amount: format(row.avg_loan_amount),
-    total_loan_amount: format(row.total_loan_amount),
-    average_income: format(row.avg_income)
-  });
-});
+    return res.json({
+      average_credit_score: format(row.avg_credit_score),
+      average_dti_ratio: format(row.avg_dti, 3),
+      average_loan_amount: format(row.avg_loan_amount),
+      total_loan_amount: format(row.total_loan_amount),
+      average_income: format(row.avg_income)
+    });
+  })
+);
 
-app.get("/dashboard/timeline", (req, res) => {
-  const days = Number(req.query.days) || 30;
-  const rows = db
-    .prepare(
+app.get(
+  "/dashboard/timeline",
+  asyncHandler(async (req, res) => {
+    const days = Number(req.query.days) || 30;
+    const { rows } = await query(
       `SELECT DATE(created_at) AS date,
               COUNT(*) AS total,
               SUM(CASE WHEN final_status = 'APPROVED' THEN 1 ELSE 0 END) AS approved,
@@ -378,31 +491,32 @@ app.get("/dashboard/timeline", (req, res) => {
        FROM loan_applications
        GROUP BY DATE(created_at)
        ORDER BY DATE(created_at) DESC
-       LIMIT ?`
-    )
-    .all(days);
+       LIMIT $1`,
+      [days]
+    );
 
-  return res.json({
-    timeline: rows.map((row) => ({
-      date: row.date,
-      total: row.total,
-      approved: row.approved,
-      rejected: row.rejected
-    }))
-  });
-});
+    return res.json({
+      timeline: rows.map((row) => ({
+        date: row.date,
+        total: Number(row.total),
+        approved: Number(row.approved),
+        rejected: Number(row.rejected)
+      }))
+    });
+  })
+);
 
 app.use((err, req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: "Internal server error" });
 });
 
-const bootstrap = () => {
-  if (useInMemoryDb) {
-    console.log("[DB] Using in-memory mode. Seeding baseline data...");
-    seedStocks();
+const startServer = async () => {
+  if (autoSeedOnStart) {
+    console.log("[DB] Auto seeding enabled. Populating baseline data...");
+    await seedStocks({ silent: true });
     const loanSeedCount = Number(process.env.IN_MEMORY_LOAN_COUNT) || 25;
-    seedLoanApplications(loanSeedCount);
+    await seedLoanApplications(loanSeedCount, { silent: true });
   }
 
   app.listen(PORT, () => {
@@ -410,4 +524,4 @@ const bootstrap = () => {
   });
 };
 
-bootstrap();
+startServer();

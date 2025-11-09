@@ -1,7 +1,8 @@
 import {
   getLoanApplicationRow,
   getLoanApplicationByApplicationId,
-  updateLoanApplicationById
+  updateLoanApplicationById,
+  updateLoanFinalStatus
 } from "./loanService.js";
 
 const VALID_REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASIA"];
@@ -9,7 +10,7 @@ const VALID_REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASI
 const nowIso = () => new Date().toISOString();
 
 class VerificationService {
-  static performKyc(application) {
+  static async performKyc(application) {
     const remarks = [];
     let approved = true;
 
@@ -48,7 +49,8 @@ class VerificationService {
       remarks.push(`Region verified: ${application.region}`);
     }
 
-    updateLoanApplicationById(application.id, {
+    await updateLoanFinalStatus(application.id, approved ? "APPROVED" : "REJECTED");
+    await updateLoanApplicationById(application.id, {
       kyc_status: approved ? "APPROVED" : "REJECTED",
       kyc_verified_at: nowIso(),
       kyc_remarks: remarks.join("; ")
@@ -57,7 +59,7 @@ class VerificationService {
     return approved;
   }
 
-  static performComplianceCheck(application) {
+  static async performComplianceCheck(application) {
     const remarks = [];
     let approved = true;
 
@@ -104,7 +106,7 @@ class VerificationService {
       );
     }
 
-    updateLoanApplicationById(application.id, {
+    await updateLoanApplicationById(application.id, {
       compliance_status: approved ? "APPROVED" : "REJECTED",
       compliance_verified_at: nowIso(),
       compliance_remarks: remarks.join("; "),
@@ -115,7 +117,7 @@ class VerificationService {
     return approved;
   }
 
-  static performEligibilityCheck(application) {
+  static async performEligibilityCheck(application) {
     const remarks = [];
     let approved = true;
 
@@ -127,7 +129,7 @@ class VerificationService {
       } else {
         remarks.push(`DTI ratio acceptable: ${(dtiRatio * 100).toFixed(1)}%`);
       }
-      updateLoanApplicationById(application.id, { dti_ratio: dtiRatio });
+      await updateLoanApplicationById(application.id, { dti_ratio: dtiRatio });
     } else {
       remarks.push("Invalid income value");
       approved = false;
@@ -169,7 +171,7 @@ class VerificationService {
       approved = false;
     }
 
-    updateLoanApplicationById(application.id, {
+    await updateLoanApplicationById(application.id, {
       eligibility_status: approved ? "APPROVED" : "REJECTED",
       eligibility_verified_at: nowIso(),
       eligibility_remarks: remarks.join("; ")
@@ -178,7 +180,7 @@ class VerificationService {
     return approved;
   }
 
-  static finalizeApplication(application) {
+  static async finalizeApplication(application) {
     const approved =
       application.kyc_status === "APPROVED" &&
       application.compliance_status === "APPROVED" &&
@@ -189,8 +191,11 @@ class VerificationService {
     if (application.compliance_status !== "APPROVED") failedChecks.push("Compliance");
     if (application.eligibility_status !== "APPROVED") failedChecks.push("Eligibility");
 
-    updateLoanApplicationById(application.id, {
-      final_status: approved ? "APPROVED" : "REJECTED",
+    await updateLoanFinalStatus(
+      application.id,
+      approved ? "APPROVED" : "REJECTED"
+    );
+    await updateLoanApplicationById(application.id, {
       final_decision_at: nowIso(),
       final_remarks: approved
         ? "All verification checks passed. Loan application approved."
@@ -200,54 +205,55 @@ class VerificationService {
     return approved;
   }
 
-  static sendNotification(application) {
+  static async sendNotification(application) {
     console.log(
       `[NOTIFY] Application ${application.application_id} ${application.final_status} for ${application.name}`
     );
-    updateLoanApplicationById(application.id, {
-      alert_sent: 1,
-      email_sent: 1
+    await updateLoanApplicationById(application.id, {
+      alert_sent: true,
+      email_sent: true
     });
   }
 
-  static markFailure(application, message) {
-    updateLoanApplicationById(application.id, {
+  static async markFailure(application, message) {
+    await updateLoanApplicationById(application.id, {
       final_status: "REJECTED",
       final_remarks: message,
-      final_decision_at: nowIso()
+      final_decision_at: nowIso(),
+      review_status: "REJECTED"
     });
-    const latest = getLoanApplicationByApplicationId(application.application_id);
-    this.sendNotification(latest);
+    const latest = await getLoanApplicationByApplicationId(application.application_id);
+    await this.sendNotification(latest);
   }
 
-  static processApplication(applicationId) {
-    let application = getLoanApplicationRow(applicationId);
+  static async processApplication(applicationId) {
+    let application = await getLoanApplicationRow(applicationId);
     if (!application) {
       console.warn(`[Workflow] Application ${applicationId} not found`);
       return false;
     }
 
-    if (!this.performKyc(application)) {
-      this.markFailure(application, "Application rejected at KYC stage");
+    if (!(await this.performKyc(application))) {
+      await this.markFailure(application, "Application rejected at KYC stage");
       return false;
     }
-    application = getLoanApplicationRow(applicationId);
+    application = await getLoanApplicationRow(applicationId);
 
-    if (!this.performComplianceCheck(application)) {
-      this.markFailure(application, "Application rejected at compliance stage");
+    if (!(await this.performComplianceCheck(application))) {
+      await this.markFailure(application, "Application rejected at compliance stage");
       return false;
     }
-    application = getLoanApplicationRow(applicationId);
+    application = await getLoanApplicationRow(applicationId);
 
-    if (!this.performEligibilityCheck(application)) {
-      this.markFailure(application, "Application rejected at eligibility stage");
+    if (!(await this.performEligibilityCheck(application))) {
+      await this.markFailure(application, "Application rejected at eligibility stage");
       return false;
     }
-    application = getLoanApplicationRow(applicationId);
+    application = await getLoanApplicationRow(applicationId);
 
-    const approved = this.finalizeApplication(application);
-    application = getLoanApplicationByApplicationId(applicationId);
-    this.sendNotification(application);
+    const approved = await this.finalizeApplication(application);
+    application = await getLoanApplicationByApplicationId(applicationId);
+    await this.sendNotification(application);
     return approved;
   }
 }

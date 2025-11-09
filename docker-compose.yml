@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile
     container_name: loan-backend
     ports:
-      - "5002:5002"
+      - "5003:5003"
     environment:
       KAFKA_BROKER: kafka:9092
     depends_on:

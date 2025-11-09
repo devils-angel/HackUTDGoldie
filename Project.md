@@ -42,7 +42,7 @@ A comprehensive end-to-end loan application processing system with automated KYC
 - User registration and authentication
 - Stock market data integration (existing functionality maintained)
 - RESTful API with CORS support
-- SQLite database with SQLAlchemy ORM
+- PostgreSQL database with Node.js ORM/helpers
 - Docker containerization
 
 ## 🏗️ System Architecture
@@ -54,7 +54,7 @@ A comprehensive end-to-end loan application processing system with automated KYC
        │
        ↓
 ┌─────────────────────────────────────────────────────────┐
-│              Flask Application (REST API)               │
+│              Node.js / Express Application              │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
@@ -80,14 +80,14 @@ A comprehensive end-to-end loan application processing system with automated KYC
 │                  │Notification │                        │
 │                  └─────────────┘                        │
 ├─────────────────────────────────────────────────────────┤
-│              Node.js Services & SQLite DB               │
+│              Node.js Services & PostgreSQL DB           │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## 🛠️ Tech Stack
 
 - **Backend**: Node.js 20 + Express 4
-- **Database**: SQLite (via better-sqlite3)
+- **Database**: PostgreSQL (via pg)
 - **Containerization**: Docker & Docker Compose
 - **Message Queue**: Kafka (optional, infrastructure ready)
 - **Additional Libraries**: 
@@ -110,8 +110,8 @@ A comprehensive end-to-end loan application processing system with automated KYC
    ```
 
 2. **The application will be available at**:
-   - API: `http://localhost:5002`
-   - Health check: `http://localhost:5002/`
+   - API: `http://localhost:5003`
+   - Health check: `http://localhost:5003/`
 
 3. **Reseed sample data (optional)**:
    ```bash
@@ -120,32 +120,36 @@ A comprehensive end-to-end loan application processing system with automated KYC
 
 ### Local Development
 
-1. **Install dependencies**:
+1. **Configure environment**:
+   ```bash
+   cp .env.example .env  # set PGHOST, PGUSER, etc.
+   ```
+
+2. **Install dependencies**:
    ```bash
    npm install
    ```
 
-2. **Seed baseline data**:
+3. **Seed baseline data**:
    ```bash
    npm run seed:stocks     # Load stock quotes from CSV
    node seedLoanData.js 50 # Generate 50 sample loan applications
    ```
 
-3. **Run the Node server**:
+4. **Run the Node server**:
    ```bash
    npm start
    ```
 
-### In-Memory Mode (for testing)
+### Auto-Seeding (optional)
 
-- Set `IN_MEMORY_DB=true` to keep SQLite purely in RAM. The server will automatically seed stocks and `IN_MEMORY_LOAN_COUNT` (defaults to 25) loan applications.
+- Copy `.env.example` to `.env` and set your PostgreSQL credentials.
+- Set `AUTO_SEED=true` if you want the server to seed stocks and `IN_MEMORY_LOAN_COUNT` (defaults to 25) loan applications automatically on startup.
 - Example:
   ```bash
-  IN_MEMORY_DB=true npm start
-  # or hot reload
-  IN_MEMORY_DB=true npm run dev
+  AUTO_SEED=true npm start
   ```
-- Data is wiped every time the process restarts.
+  Disable `AUTO_SEED` for normal production usage.
 
 ## 📊 Workflow Overview
 
@@ -241,15 +245,15 @@ python test_api.py
 **Manual testing examples:**
 ```bash
 # Health check
-curl http://localhost:5002/
+curl http://localhost:5003/
 
 # Submit application
-curl -X POST http://localhost:5002/loan-application/submit \
+curl -X POST http://localhost:5003/loan-application/submit \
   -H "Content-Type: application/json" \
   -d '{"name":"Test User","email":"test@example.com","phone":"+1234567890","region":"AMERICAS","country":"United States","income":80000,"debt":20000,"credit_score":720,"loan_amount":200000,"loan_purpose":"Home Purchase"}'
 
 # View dashboard
-curl http://localhost:5002/dashboard/overview
+curl http://localhost:5003/dashboard/overview
 ```
 
 ## 📁 Project Structure
@@ -257,7 +261,7 @@ curl http://localhost:5002/dashboard/overview
 ```
 .
 ├── server.js                   # Express application entry point
-├── db.js                       # SQLite connection & schema bootstrap
+├── db.js                       # PostgreSQL connection & schema bootstrap
 ├── loanService.js              # Loan persistence helpers
 ├── verificationService.js      # Verification workflow logic
 ├── seedData.js                 # Stock data seeder
@@ -322,4 +326,4 @@ node seedLoanData.js 50 # create and process 50 apps
 
 ---
 
-**Built with ❤️ using Flask, Python, and Docker**
+**Built with ❤️ using Node.js, PostgreSQL, and Docker**

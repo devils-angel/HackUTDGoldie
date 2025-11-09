@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 
 const links = [
   { label: "Dashboard", to: "/dashboard" },
+  { label: "Pending Requests", to: "/pending" },
   { label: "Loan Workspace", to: "/loan" },
   { label: "Sign Out", to: "/login" },
 ];
