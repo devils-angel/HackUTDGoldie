@@ -47,8 +47,8 @@ export default function LoanForm() {
     setResult(null);
 
     try {
-      // API endpoint - adjust the base URL as needed
-      const API_BASE_URL = "http://localhost:5000";
+      // API endpoint - keep in sync with backend port
+      const API_BASE_URL = "http://localhost:5002";
       
       const response = await axios.post(
         `${API_BASE_URL}/loan-application/submit`,

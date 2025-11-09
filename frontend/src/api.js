@@ -3,8 +3,8 @@ import axios from "axios";
 const baseURL =
   import.meta.env.VITE_API_URL ||
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
-    : "http://backend:5000");
+    ? "http://localhost:5002"
+    : "http://backend:5002");
 
 const API = axios.create({
   baseURL,
