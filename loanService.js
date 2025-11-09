@@ -324,6 +324,22 @@ export const getBankAccountById = async (id) => {
   return rows[0] || null;
 };
 
+export const creditBankAccountBalance = async (accountId, amount) => {
+  if (!accountId || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+    return null;
+  }
+  const { rows } = await query(
+    `
+    UPDATE bank_accounts
+    SET balance = COALESCE(balance, 0) + $2
+    WHERE id = $1
+    RETURNING *
+  `,
+    [accountId, Number(amount)]
+  );
+  return rows[0] || null;
+};
+
 const generateCandidateAccountNumber = () =>
   String(
     Math.floor(100000000000 + Math.random() * 900000000000) // 12-digit number

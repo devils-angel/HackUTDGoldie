@@ -2,7 +2,8 @@ import {
   getLoanApplicationRow,
   getLoanApplicationByApplicationId,
   updateLoanApplicationById,
-  updateLoanFinalStatus
+  updateLoanFinalStatus,
+  creditBankAccountBalance
 } from "./loanService.js";
 
 const VALID_REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASIA"];
@@ -201,6 +202,17 @@ class VerificationService {
         ? "All verification checks passed. Loan application approved."
         : `Loan application rejected. Failed checks: ${failedChecks.join(", ")}`
     });
+
+    if (
+      approved &&
+      application.bank_account_id &&
+      Number(application.loan_amount) > 0
+    ) {
+      await creditBankAccountBalance(
+        application.bank_account_id,
+        Number(application.loan_amount)
+      );
+    }
 
     return approved;
   }

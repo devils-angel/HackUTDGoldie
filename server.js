@@ -19,7 +19,8 @@ import {
   fetchUsersByRole,
   fetchBankAccountsByEmail,
   createBankAccount,
-  getBankAccountById
+  getBankAccountById,
+  creditBankAccountBalance
 } from "./loanService.js";
 import { seedStocks } from "./seedData.js";
 import { seedLoanApplications } from "./seedLoanData.js";
@@ -677,22 +678,6 @@ app.post(
       [nextStage.remarksField]: `Manually approved on ${now}`
     });
 
-    await createApprovalLog({
-      applicationId,
-      stage: nextStage.label,
-      action: "STAGE_APPROVED",
-      actorEmail: actor.email,
-      actorRole: actor.role,
-      notes: req.body?.notes || null
-    });
-
-    await createNotification({
-      recipientEmail: application.email,
-      role: "CLIENT",
-      applicationId,
-      message: `${nextStage.label} stage approved for ${applicationId}`
-    });
-
     const updated = await getLoanApplicationByApplicationId(applicationId);
     const allStagesApproved = MANUAL_STAGES.every(
       (stage) => (updated[stage.key] || "PENDING") === "APPROVED"
@@ -700,20 +685,42 @@ app.post(
 
     let message = `${nextStage.label} stage approved`;
 
-    if (allStagesApproved) {
+    if (!allStagesApproved) {
+      await createApprovalLog({
+        applicationId,
+        stage: nextStage.label,
+        action: "STAGE_APPROVED",
+        actorEmail: actor.email,
+        actorRole: actor.role,
+        notes: req.body?.notes || null
+      });
+
+      await createNotification({
+        recipientEmail: application.email,
+        role: "CLIENT",
+        applicationId,
+        message: `${nextStage.label} stage approved for ${applicationId}`
+      });
+    } else {
       await updateLoanFinalStatus(updated.id, "APPROVED");
       await updateLoanApplicationById(updated.id, {
         final_decision_at: now,
         final_remarks: "All manual reviews completed",
         review_status: "APPROVED"
       });
+      if (updated.bank_account_id && Number(updated.loan_amount) > 0) {
+        await creditBankAccountBalance(
+          updated.bank_account_id,
+          Number(updated.loan_amount)
+        );
+      }
       await createApprovalLog({
         applicationId,
         stage: "Final Decision",
         action: "FINAL_APPROVED",
         actorEmail: actor.email,
         actorRole: actor.role,
-        notes: "All stages approved"
+        notes: `${nextStage.label} approved and loan finalized`
       });
       await createNotification({
         recipientEmail: application.email,

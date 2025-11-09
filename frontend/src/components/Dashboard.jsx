@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   fetchDashboardOverview,
   fetchDashboardByRegion,
   fetchDashboardByCountry,
   fetchDashboardVerificationStats,
-  fetchDashboardFinancialMetrics,
-  fetchData
+  fetchDashboardFinancialMetrics
 } from "../api";
 import Sidebar from "./Sidebar";
 
@@ -15,35 +16,47 @@ const formatCurrency = (value) =>
 const formatPercent = (value, suffix = "%") =>
   value != null ? `${Number(value).toFixed(2)}${suffix}` : "—";
 
+const stagePalette = {
+  eligibility: {
+    label: "Eligibility",
+    accent: "var(--status-approve-bg)"
+  },
+  kyc: {
+    label: "KYC",
+    accent: "var(--color-blue)"
+  },
+  compliance: {
+    label: "Compliance",
+    accent: "var(--status-pending-bg)"
+  }
+};
+
 export default function Dashboard() {
-  const [marketRows, setMarketRows] = useState([]);
   const [overview, setOverview] = useState(null);
   const [regions, setRegions] = useState([]);
   const [countries, setCountries] = useState([]);
   const [verificationStats, setVerificationStats] = useState(null);
   const [financialMetrics, setFinancialMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
         const [
-          marketRes,
           overviewRes,
           regionsRes,
           countriesRes,
           verificationRes,
           financialRes
         ] = await Promise.all([
-          fetchData(),
           fetchDashboardOverview(),
           fetchDashboardByRegion(),
           fetchDashboardByCountry(),
           fetchDashboardVerificationStats(),
           fetchDashboardFinancialMetrics()
         ]);
-        setMarketRows(marketRes.data || []);
         setOverview(overviewRes.data);
         setRegions(regionsRes.data.regions || []);
         setCountries(countriesRes.data.countries || []);
@@ -58,21 +71,134 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-  const marketSummary = useMemo(() => {
-    if (!marketRows.length) {
-      return { totalSymbols: 0, positiveMoves: 0, averageChange: 0 };
+
+  const topRegions = useMemo(() => {
+    if (!regions.length) return [];
+    return regions
+      .slice()
+      .sort((a, b) => Number(b.total) - Number(a.total))
+      .slice(0, 4);
+  }, [regions]);
+
+  const topCountries = useMemo(() => {
+    if (!countries.length) return [];
+    return countries
+      .slice()
+      .sort((a, b) => Number(b.total) - Number(a.total))
+      .slice(0, 5);
+  }, [countries]);
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const doc = new jsPDF("p", "pt");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("Goldman Loan Dashboard", 40, 50);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(
+        `Generated on ${new Date().toLocaleString()}`,
+        40,
+        68
+      );
+
+      if (overview) {
+        autoTable(doc, {
+          startY: 90,
+          head: [["Metric", "Value"]],
+          body: [
+            ["Total Applications", overview.total_applications],
+            ["Approved Deals", overview.approved],
+            ["Rejected Deals", overview.rejected],
+            ["In Review", overview.pending],
+            ["Approval Rate", `${overview.approval_rate}%`]
+          ],
+          theme: "grid",
+          styles: { fontSize: 10 }
+        });
+      }
+
+      if (verificationStats) {
+        autoTable(doc, {
+          startY: (doc.lastAutoTable?.finalY || 120) + 20,
+          head: [["Stage", "Approved", "Rejected", "Pass Rate"]],
+          body: ["eligibility", "kyc", "compliance"].map((key) => [
+            stagePalette[key].label,
+            verificationStats[key].approved ?? "—",
+            verificationStats[key].rejected ?? "—",
+            `${verificationStats[key].pass_rate}%`
+          ]),
+          theme: "grid",
+          styles: { fontSize: 10 }
+        });
+      }
+
+      if (financialMetrics) {
+        autoTable(doc, {
+          startY: (doc.lastAutoTable?.finalY || 180) + 20,
+          head: [["Financial Metric", "Value"]],
+          body: [
+            ["Avg Credit Score", financialMetrics.average_credit_score],
+            [
+              "Avg DTI Ratio",
+              formatPercent(Number(financialMetrics.average_dti_ratio) * 100)
+            ],
+            [
+              "Avg Loan Amount",
+              formatCurrency(financialMetrics.average_loan_amount)
+            ],
+            [
+              "Total Loan Volume",
+              formatCurrency(financialMetrics.total_loan_amount)
+            ]
+          ],
+          theme: "grid",
+          styles: { fontSize: 10 }
+        });
+      }
+
+      if (topRegions.length) {
+        autoTable(doc, {
+          startY: (doc.lastAutoTable?.finalY || 240) + 20,
+          head: [["Region", "Total", "Approved", "Pending"]],
+          body: topRegions.map((region) => [
+            region.region,
+            region.total,
+            region.approved,
+            region.pending
+          ]),
+          theme: "grid",
+          styles: { fontSize: 10 }
+        });
+      }
+
+      if (topCountries.length) {
+        autoTable(doc, {
+          startY: (doc.lastAutoTable?.finalY || 300) + 20,
+          head: [["Country", "Region", "Total", "Approved", "Rejected"]],
+          body: topCountries.map((country) => [
+            country.country,
+            country.region,
+            country.total,
+            country.approved,
+            country.rejected
+          ]),
+          theme: "grid",
+          styles: { fontSize: 10 }
+        });
+      }
+
+      doc.save(
+        `goldman-loan-dashboard-${new Date().toISOString().slice(0, 10)}.pdf`
+      );
+    } catch (err) {
+      console.error("Failed to export report", err);
+    } finally {
+      setExporting(false);
     }
-    const totalSymbols = marketRows.length;
-    const changes = marketRows.map((row) => Number(row.change) || 0);
-    const positiveMoves = changes.filter((value) => value > 0).length;
-    const averageChange =
-      changes.reduce((acc, curr) => acc + curr, 0) / totalSymbols;
-    return {
-      totalSymbols,
-      positiveMoves,
-      averageChange: averageChange.toFixed(2)
-    };
-  }, [marketRows]);
+  };
 
   return (
     <div className="min-h-screen lg:flex bg-[var(--color-navy)] text-[var(--color-text)]">
@@ -90,8 +216,12 @@ export default function Dashboard() {
                 stages.
               </p>
             </div>
-            <button className="self-start md:self-auto bg-[var(--color-blue)] text-[var(--color-on-blue)] px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition">
-              Export report
+            <button
+              onClick={handleExport}
+              disabled={loading || exporting}
+              className="self-start md:self-auto bg-[var(--color-blue)] text-[var(--color-on-blue)] px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting ? "Generating…" : "Export report"}
             </button>
           </div>
         </header>
@@ -260,53 +390,6 @@ export default function Dashboard() {
             </div>
           </section>
         )}
-
-        <section className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/10 p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-2xl font-semibold">Equity tape</h2>
-              <p className="text-sm text-[var(--color-text)]">
-                Optimized for rapid scanning and responsive layouts.
-              </p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm border-separate border-spacing-y-2">
-              <thead>
-                <tr className="text-[var(--color-sky)]">
-                  {marketRows.length > 0 &&
-                    Object.keys(marketRows[0]).map((key) => (
-                      <th key={key} className="px-4 py-2 capitalize">
-                        {key.replace(/_/g, " ")}
-                      </th>
-                    ))}
-                </tr>
-              </thead>
-              <tbody>
-                {marketRows.map((row, i) => (
-                  <tr
-                    key={i}
-                    className="bg-[var(--color-navy)] rounded-2xl shadow-inner shadow-black/10"
-                  >
-                    {Object.values(row).map((val, j) => (
-                      <td key={j} className="px-4 py-3 text-[var(--color-text)]/90">
-                        {val ?? "—"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-                {!marketRows.length && (
-                  <tr>
-                    <td className="px-4 py-6 text-[var(--color-text)]">
-                      {loading ? "Loading intelligence feed…" : "No data"}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </div>
     </div>
   );
