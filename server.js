@@ -37,6 +37,12 @@ const normalizeRole = (value) =>
   (value || "CLIENT").toString().trim().toUpperCase();
 const MANUAL_STAGES = [
   {
+    key: "eligibility_status",
+    label: "Eligibility",
+    verifiedField: "eligibility_verified_at",
+    remarksField: "eligibility_remarks"
+  },
+  {
     key: "kyc_status",
     label: "KYC",
     verifiedField: "kyc_verified_at",
@@ -47,12 +53,6 @@ const MANUAL_STAGES = [
     label: "Compliance",
     verifiedField: "compliance_verified_at",
     remarksField: "compliance_remarks"
-  },
-  {
-    key: "eligibility_status",
-    label: "Eligibility",
-    verifiedField: "eligibility_verified_at",
-    remarksField: "eligibility_remarks"
   }
 ];
 const signToken = (user) =>
@@ -401,12 +401,40 @@ app.post(
     };
 
     const modelInsights = await evaluateWithModel(modelPayload);
+    let modelEligibilityAudit = null;
     if (modelInsights) {
       data.model_score = modelInsights.score;
       data.model_decision = modelInsights.decision;
+      if (modelInsights.score != null && !Number.isNaN(Number(modelInsights.score))) {
+        const scoreNum = Number(modelInsights.score);
+        const isEligible = scoreNum > 0.5;
+        const timestamp = new Date().toISOString();
+        modelEligibilityAudit = {
+          status: isEligible ? "APPROVED" : "REJECTED",
+          timestamp,
+          remarks: isEligible
+            ? "Eligibility approved by model score"
+            : "Eligibility rejected by model score"
+        };
+        data.eligibility_status = modelEligibilityAudit.status;
+        data.eligibility_verified_at = modelEligibilityAudit.timestamp;
+        data.eligibility_remarks = modelEligibilityAudit.remarks;
+      }
     }
 
     const application = await createLoanApplication(data);
+    if (modelEligibilityAudit) {
+      await updateLoanApplicationById(application.id, {
+        eligibility_status: modelEligibilityAudit.status,
+        eligibility_verified_at: modelEligibilityAudit.timestamp,
+        eligibility_remarks: modelEligibilityAudit.remarks
+      });
+      Object.assign(application, {
+        eligibility_status: modelEligibilityAudit.status,
+        eligibility_verified_at: modelEligibilityAudit.timestamp,
+        eligibility_remarks: modelEligibilityAudit.remarks
+      });
+    }
 
     const shouldAutoReject =
       MODEL_AUTO_REJECT && data.model_decision === "MODEL_REJECT";

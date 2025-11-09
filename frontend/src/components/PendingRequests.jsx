@@ -8,9 +8,9 @@ import {
 import { getStatusChipStyles, getModelVerdictStyles } from "../utils/statusStyles";
 
 const STAGES = [
+  { key: "eligibility_status", label: "Eligibility" },
   { key: "kyc_status", label: "KYC" },
   { key: "compliance_status", label: "Compliance" },
-  { key: "eligibility_status", label: "Eligibility" },
 ];
 
 const nextStageFor = (request) =>

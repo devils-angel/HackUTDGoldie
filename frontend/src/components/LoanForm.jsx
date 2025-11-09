@@ -19,6 +19,12 @@ const LOAN_PURPOSES = [
   "Emergency Funds"
 ];
 
+const STAGE_FLOW = [
+  { key: "eligibility_status", label: "Eligibility" },
+  { key: "kyc_status", label: "KYC" },
+  { key: "compliance_status", label: "Compliance" }
+];
+
 export default function LoanForm() {
   const [formData, setFormData] = useState({
     name: "",
@@ -543,36 +549,32 @@ export default function LoanForm() {
                     return (
                       <div
                         key={req.application_id}
-                        className="border border-[var(--color-blue)]/20 rounded-2xl p-4 bg-[var(--color-navy)]"
+                        className="border border-[var(--color-blue)]/20 rounded-2xl p-4 bg-[var(--color-navy)] space-y-2"
                       >
-                        <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-sky)]">
-                          {req.application_id}
-                        </p>
-                        <p className="text-lg font-semibold mt-1">
-                          {req.loan_purpose || "Loan Request"}
-                        </p>
-                        <p className="text-sm text-[var(--color-text)]">
-                          ${Number(req.loan_amount).toLocaleString()}
-                        </p>
-                        <p className="mt-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-sky)]">
+                            {req.application_id}
+                          </p>
                           <span
                             className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide border"
                             style={tone.style}
                           >
                             {tone.label}
                           </span>
+                        </div>
+                        <p className="text-lg font-semibold text-[var(--color-text)]">
+                          {req.loan_purpose || "Loan Request"}
                         </p>
-                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                          {[
-                            { key: "kyc_status", label: "KYC" },
-                            { key: "compliance_status", label: "Compliance" },
-                            { key: "eligibility_status", label: "Eligibility" }
-                          ].map((stage) => {
+                        <p className="text-sm text-[var(--color-text)]">
+                          ${Number(req.loan_amount).toLocaleString()}
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-xs pt-1 border-t border-[var(--color-blue)]/15">
+                          {STAGE_FLOW.map((stage) => {
                             const stageTone = getStatusChipStyles(req[stage.key]);
                             return (
                               <span
                                 key={`${req.application_id}-${stage.key}`}
-                                className="px-3 py-1 rounded-full text-xs font-semibold tracking-wide border"
+                                className="px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide border"
                                 style={stageTone.style}
                               >
                                 {stage.label}: {stageTone.label}
@@ -587,7 +589,7 @@ export default function LoanForm() {
                             );
                             return (
                               <div
-                                className="mt-3 p-3 rounded-2xl border"
+                                className="p-3 rounded-2xl border"
                                 style={verdictStyles.container}
                               >
                                 <div className="flex items-center justify-between text-xs font-semibold">
