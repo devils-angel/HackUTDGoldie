@@ -84,6 +84,8 @@ const runMigrations = async () => {
       eligibility_verified_at TIMESTAMPTZ,
       eligibility_remarks TEXT,
       dti_ratio NUMERIC,
+      model_score NUMERIC,
+      model_decision TEXT,
       final_status TEXT DEFAULT 'PENDING',
       final_decision_at TIMESTAMPTZ,
       final_remarks TEXT,
@@ -183,6 +185,16 @@ const runMigrations = async () => {
   await pool.query(`
     ALTER TABLE loan_applications
     ADD COLUMN IF NOT EXISTS bank_account_id INTEGER REFERENCES bank_accounts(id)
+  `);
+
+  await pool.query(`
+    ALTER TABLE loan_applications
+    ADD COLUMN IF NOT EXISTS model_score NUMERIC
+  `);
+
+  await pool.query(`
+    ALTER TABLE loan_applications
+    ADD COLUMN IF NOT EXISTS model_decision TEXT
   `);
 };
 

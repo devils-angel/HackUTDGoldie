@@ -27,6 +27,8 @@ import { query } from "./db.js";
 
 const PORT = process.env.PORT || 5003;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-goldman-secret";
+const MODEL_ENDPOINT = process.env.MODEL_ENDPOINT || "";
+const MODEL_TIMEOUT_MS = Number(process.env.MODEL_TIMEOUT_MS || 4000);
 const autoSeedOnStart = process.env.AUTO_SEED === "true";
 const USER_ROLES = ["ADMIN", "VENDOR", "CLIENT"];
 const normalizeRole = (value) =>
@@ -86,6 +88,120 @@ const actorFromRequest = (req) => {
     email: actor.email || req.user?.email || null,
     role: actor.role || req.user?.role || null
   };
+};
+
+const clamp01 = (value) => {
+  if (!Number.isFinite(value)) return null;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+};
+
+const normalizeModelScore = (raw) => {
+  if (raw == null) return null;
+  const num = Number(raw);
+  if (!Number.isFinite(num)) return null;
+  if (num > 1) {
+    if (num <= 100) {
+      return clamp01(num / 100);
+    }
+    return clamp01(num);
+  }
+  return clamp01(num);
+};
+
+const fallbackModelInference = (payload) => {
+  const income = Number(payload.income) || 0;
+  const debt = Number(payload.debt) || 0;
+  const creditScore = Number(payload.credit_score) || 0;
+  const dti = income > 0 ? debt / income : 1;
+  const normalizedCredit = clamp01((creditScore - 300) / 550) ?? 0;
+  const normalizedDti = clamp01(1 - dti) ?? 0;
+  const rawScore =
+    0.7 * normalizedCredit + 0.3 * normalizedDti;
+  const score = clamp01(Number(rawScore.toFixed(4)));
+  const decision =
+    score >= 0.65
+      ? "MODEL_APPROVE"
+      : score >= 0.45
+      ? "MODEL_REVIEW"
+      : "MODEL_REJECT";
+  return { score, decision, source: "fallback" };
+};
+
+const callModelEndpoint = async (payload) => {
+  if (!MODEL_ENDPOINT) return null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+    const response = await fetch(MODEL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!response.ok) {
+      console.warn(
+        "[Model] Non-success response",
+        response.status,
+        await response.text()
+      );
+      return null;
+    }
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.warn("[Model] Failed to call inference service", err.message);
+    return null;
+  }
+};
+
+const extractModelInsights = (raw) => {
+  if (!raw || typeof raw !== "object") return null;
+  const scoreCandidateKeys = [
+    "score",
+    "probability",
+    "confidence",
+    "approval_probability",
+    "prediction_score"
+  ];
+  let score = null;
+  for (const key of scoreCandidateKeys) {
+    if (raw[key] != null) {
+      score = normalizeModelScore(raw[key]);
+      if (score != null) break;
+    }
+  }
+  if (score == null && typeof raw.prediction === "number") {
+    score = normalizeModelScore(raw.prediction);
+  }
+  let decision =
+    raw.decision ||
+    raw.prediction_label ||
+    raw.label ||
+    (typeof raw.prediction === "string" ? raw.prediction : null);
+  if (!decision && typeof raw.approved !== "undefined") {
+    decision = raw.approved ? "MODEL_APPROVE" : "MODEL_REJECT";
+  }
+  if (!decision && score != null) {
+    decision =
+      score >= 0.65
+        ? "MODEL_APPROVE"
+        : score >= 0.45
+        ? "MODEL_REVIEW"
+        : "MODEL_REJECT";
+  }
+  return { score, decision, source: "remote" };
+};
+
+const evaluateWithModel = async (payload) => {
+  const remote = await callModelEndpoint(payload);
+  if (remote) {
+    const insights = extractModelInsights(remote);
+    if (insights) return insights;
+  }
+  return fallbackModelInference(payload);
 };
 
 const app = express();
@@ -265,6 +381,27 @@ app.post(
           .json({ error: "Invalid bank account selected for this user" });
       }
       data.bank_account_id = Number(data.bank_account_id);
+    }
+
+    const modelPayload = {
+      income: Number(data.income),
+      debt: Number(data.debt),
+      credit_score: Number(data.credit_score),
+      loan_amount: Number(data.loan_amount),
+      loan_purpose: data.loan_purpose,
+      region: data.region,
+      country: data.country,
+      documents_uploaded: Boolean(data.documents_uploaded),
+      dti_ratio:
+        Number(data.income) > 0
+          ? Number(data.debt) / Number(data.income)
+          : 1
+    };
+
+    const modelInsights = await evaluateWithModel(modelPayload);
+    if (modelInsights) {
+      data.model_score = modelInsights.score;
+      data.model_decision = modelInsights.decision;
     }
 
     const application = await createLoanApplication(data);

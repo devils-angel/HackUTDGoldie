@@ -18,7 +18,7 @@ const isoFields = [
   "updated_at"
 ];
 
-const numericFields = ["income", "debt", "loan_amount", "dti_ratio"];
+const numericFields = ["income", "debt", "loan_amount", "dti_ratio", "model_score"];
 
 const defaultDocuments = [
   "ID_Proof",
@@ -106,9 +106,11 @@ export const createLoanApplication = async (payload) => {
       documents_uploaded,
       document_list,
       review_status,
-      bank_account_id
+      bank_account_id,
+      model_score,
+      model_decision
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
     )
     RETURNING *
   `,
@@ -127,7 +129,9 @@ export const createLoanApplication = async (payload) => {
       payload.documents_uploaded !== false,
       JSON.stringify(documents),
       (payload.review_status || "PENDING").toUpperCase(),
-      payload.bank_account_id || null
+      payload.bank_account_id || null,
+      payload.model_score != null ? Number(payload.model_score) : null,
+      payload.model_decision || null
     ]
   );
 
