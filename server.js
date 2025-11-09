@@ -693,13 +693,18 @@ app.post(
       message: `${nextStage.label} stage approved for ${applicationId}`
     });
 
+    const updated = await getLoanApplicationByApplicationId(applicationId);
+    const allStagesApproved = MANUAL_STAGES.every(
+      (stage) => (updated[stage.key] || "PENDING") === "APPROVED"
+    );
+
     let message = `${nextStage.label} stage approved`;
 
-    if (nextStage.key === "eligibility_status") {
-      await updateLoanFinalStatus(application.id, "APPROVED");
-      await updateLoanApplicationById(application.id, {
+    if (allStagesApproved) {
+      await updateLoanFinalStatus(updated.id, "APPROVED");
+      await updateLoanApplicationById(updated.id, {
         final_decision_at: now,
-        final_remarks: "Approved via manual eligibility review",
+        final_remarks: "All manual reviews completed",
         review_status: "APPROVED"
       });
       await createApprovalLog({
@@ -708,7 +713,7 @@ app.post(
         action: "FINAL_APPROVED",
         actorEmail: actor.email,
         actorRole: actor.role,
-        notes: "Eligibility approved manually"
+        notes: "All stages approved"
       });
       await createNotification({
         recipientEmail: application.email,
@@ -718,8 +723,6 @@ app.post(
       });
       message = "Application fully approved";
     }
-
-    const updated = await getLoanApplicationByApplicationId(applicationId);
     return res.json({
       message,
       application: updated
