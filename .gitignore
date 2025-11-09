@@ -1,4 +1,9 @@
 __pycache__/
 *.pyc
 database.db
+.db-wal
+.db-shm
+database.db-wal
+database.db-shm
 .env
+node_modules/

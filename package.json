@@ -1,0 +1,31 @@
+{
+  "name": "loan-orchestration-backend",
+  "version": "1.0.0",
+  "description": "Node.js backend for the Loan Application Management System",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "dev:memory": "IN_MEMORY_DB=true nodemon server.js",
+    "start:memory": "IN_MEMORY_DB=true node server.js",
+    "seed:stocks": "node seedData.js",
+    "seed:loans": "node seedLoanData.js 50",
+    "seed": "npm run seed:stocks && npm run seed:loans",
+    "start:seed": "npm run seed && npm start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.5.4",
+    "express": "^4.19.2",
+    "better-sqlite3": "^9.6.0",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}

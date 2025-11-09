@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
-python seed_data.py
-python seed_loan_data.py 5
-python app.py
+npm install
+npm run seed:stocks
+node seedLoanData.js 5
+npm start

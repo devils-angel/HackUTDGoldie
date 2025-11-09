@@ -2,8 +2,19 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../api";
 
+const roles = [
+  { label: "Admin", value: "ADMIN" },
+  { label: "Vendor", value: "VENDOR" },
+  { label: "Client", value: "CLIENT" },
+];
+
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "CLIENT",
+  });
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -83,7 +94,23 @@ export default function Register() {
               />
             </div>
 
-            <button className="w-full bg-[#2178C4] text-white rounded-xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[#2178C4]/20 hover:bg-[#1b63a0] transition">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-600">Role</label>
+          <select
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 bg-white focus:border-[#2178C4] focus:ring-2 focus:ring-[#2178C4]/20 outline-none transition"
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
+            required
+          >
+            {roles.map((role) => (
+              <option key={role.value} value={role.value}>
+                {role.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button className="w-full bg-[#2178C4] text-white rounded-xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[#2178C4]/20 hover:bg-[#1b63a0] transition">
               Create account
             </button>
           </form>

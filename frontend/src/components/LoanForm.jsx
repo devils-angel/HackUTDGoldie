@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function LoanForm() {
@@ -78,6 +78,22 @@ export default function LoanForm() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("goldmanUser");
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setFormData((prev) => ({
+          ...prev,
+          name: user?.name || prev.name,
+          email: user?.email || prev.email,
+        }));
+      } catch (err) {
+        console.error("Failed to parse stored user", err);
+      }
+    }
+  }, []);
 
   const inputClasses =
     "w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white placeholder:text-[#7A82AE] focus:border-[#2178C4] focus:ring-2 focus:ring-[#2178C4]/30 outline-none transition";

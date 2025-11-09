@@ -9,7 +9,11 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await loginUser(form);
+      const response = await loginUser(form);
+      const user = response?.data?.user;
+      if (user) {
+        localStorage.setItem("goldmanUser", JSON.stringify(user));
+      }
       alert("Login successful!");
       navigate("/dashboard");
     } catch (error) {
