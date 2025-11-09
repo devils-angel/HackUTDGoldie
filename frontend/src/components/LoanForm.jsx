@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { applyForLoan, fetchUserLoans, fetchBankAccounts } from "../api";
+import { getStatusChipStyles, getModelVerdictStyles } from "../utils/statusStyles";
 
 const REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASIA"];
 
@@ -17,14 +18,6 @@ const LOAN_PURPOSES = [
   "Investment",
   "Emergency Funds"
 ];
-
-const statusTone = (status) => {
-  if (!status) return { label: "PENDING", color: "text-[#F0BB5A]" };
-  const upper = status.toUpperCase();
-  if (upper === "APPROVED") return { label: "APPROVED", color: "text-[#64F6A3]" };
-  if (upper === "REJECTED") return { label: "REJECTED", color: "text-[#FF8FA3]" };
-  return { label: upper, color: "text-[#F0BB5A]" };
-};
 
 export default function LoanForm() {
   const [formData, setFormData] = useState({
@@ -152,35 +145,35 @@ export default function LoanForm() {
   }, []);
 
   const inputClasses =
-    "w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white placeholder:text-[#7A82AE] focus:border-[#2178C4] focus:ring-2 focus:ring-[#2178C4]/30 outline-none transition";
-  const readOnlyInputClasses = `${inputClasses} bg-[#1F2240] text-white/80 cursor-not-allowed focus:border-white/10 focus:ring-0`;
+    "w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] placeholder:text-[var(--color-gray)] focus:border-[var(--color-blue)] focus:ring-2 focus:ring-[var(--color-blue)]/30 outline-none transition";
+  const readOnlyInputClasses = `${inputClasses} bg-[var(--color-navy)] text-[color:color-mix(in_srgb,var(--color-text)_80%,transparent)] cursor-not-allowed focus:border-[var(--color-blue)]/20 focus:ring-0`;
   const selectClasses = `${inputClasses} appearance-none pr-10`;
-  const labelClasses = "block text-sm font-medium text-[#C3CDDA] mb-2";
+  const labelClasses = "block text-sm font-medium text-[var(--color-text)] mb-2";
 
   return (
-    <div className="min-h-screen lg:flex bg-[#101327] text-white">
+    <div className="min-h-screen lg:flex bg-[var(--color-navy)] text-[var(--color-text)]">
       <Sidebar />
       <div className="flex-1 px-6 py-10 md:px-10 space-y-10">
         <header className="space-y-3 text-center md:text-left">
-          <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
+          <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
             Goldman Credit Desk
           </p>
           <h2 className="text-4xl md:text-5xl font-semibold leading-tight">
             Structure a new loan application with confidence.
           </h2>
-          <p className="text-[#C3CDDA] max-w-2xl">
+          <p className="text-[var(--color-text)] max-w-2xl">
             Provide the borrower profile and our underwriting engine will trigger
             automated KYC, compliance, and eligibility checks once approved.
           </p>
         </header>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,2.2fr)_minmax(280px,1fr)]">
-          <div className="bg-[#1B1F35] rounded-3xl border border-white/5 shadow-2xl p-8 space-y-10">
+          <div className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/10 shadow-2xl p-8 space-y-10">
             <form onSubmit={handleSubmit} className="space-y-10">
               <section className="space-y-6">
                 <div>
                   <h3 className="text-xl font-semibold">Personal Information</h3>
-                  <p className="text-sm text-[#A5B8D0]">
+                  <p className="text-sm text-[var(--color-sky)]">
                     Borrower details required for identity verification.
                   </p>
                 </div>
@@ -253,7 +246,7 @@ export default function LoanForm() {
                 <div>
                   <label className={labelClasses}>Linked Account</label>
                   {accountsError ? (
-                    <p className="text-sm text-red-300">{accountsError}</p>
+                    <p className="text-sm text-[var(--color-text)]">{accountsError}</p>
                   ) : accounts.length ? (
                     <select
                       className={selectClasses}
@@ -268,9 +261,9 @@ export default function LoanForm() {
                       ))}
                     </select>
                   ) : (
-                    <p className="text-sm text-[#C3CDDA]">
+                    <p className="text-sm text-[var(--color-text)]">
                       No accounts linked.{" "}
-                      <Link to="/accounts" className="text-[#2178C4] underline">
+                      <Link to="/accounts" className="text-[var(--color-blue)] underline">
                         Add one
                       </Link>{" "}
                       to speed up disbursement.
@@ -282,7 +275,7 @@ export default function LoanForm() {
               <section className="space-y-6">
                 <div>
                   <h3 className="text-xl font-semibold">Financial Snapshot</h3>
-                  <p className="text-sm text-[#A5B8D0]">
+                  <p className="text-sm text-[var(--color-sky)]">
                     Used to calculate debt-to-income and exposure ratios.
                   </p>
                 </div>
@@ -349,7 +342,7 @@ export default function LoanForm() {
               <section className="space-y-6">
                 <div>
                   <h3 className="text-xl font-semibold">Loan Structure</h3>
-                  <p className="text-sm text-[#A5B8D0]">
+                  <p className="text-sm text-[var(--color-sky)]">
                     Select the intended capital deployment.
                   </p>
                 </div>
@@ -374,12 +367,12 @@ export default function LoanForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#2178C4] text-white rounded-2xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full bg-[var(--color-blue)] text-[var(--color-text)] rounded-2xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-3">
                     <svg
-                      className="animate-spin h-5 w-5 text-white"
+                      className="animate-spin h-5 w-5 text-[var(--color-text)]"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -407,8 +400,8 @@ export default function LoanForm() {
             </form>
 
             {error && (
-              <div className="p-5 rounded-2xl border border-[#FF6B6B]/30 bg-[#3B1F2B] text-[#FFC9C9]">
-                <p className="font-semibold flex items-center gap-2 text-[#FF8FA3]">
+              <div className="p-5 rounded-2xl border border-[var(--color-blue)]/30 bg-[var(--color-charcoal)] text-[var(--color-text)]">
+                <p className="font-semibold flex items-center gap-2 text-[var(--color-sky)]">
                   <span className="text-xl">⚠</span> Submission error
                 </p>
                 <p className="mt-2 text-sm">{error}</p>
@@ -419,20 +412,20 @@ export default function LoanForm() {
               <div
                 className={`p-6 rounded-3xl space-y-4 ${
                   pendingInfo.review_status === "REJECTED"
-                    ? "border border-[#FF8FA3]/40 bg-[#2B151E]"
+                    ? "border border-[var(--color-charcoal)]/40 bg-[var(--color-charcoal)]"
                     : pendingInfo.review_status === "APPROVED"
-                    ? "border border-[#4ADE80]/30 bg-[#0F241B]"
-                    : "border border-[#F0BB5A]/30 bg-[#2B1F0F]"
+                    ? "border border-[var(--color-sky)]/30 bg-[var(--color-navy)]"
+                    : "border border-[var(--color-blue)]/30 bg-[var(--color-charcoal)]"
                 }`}
               >
                 <div className="flex flex-col gap-2">
                   <p
                     className={`text-sm uppercase tracking-[0.3em] ${
                       pendingInfo.review_status === "REJECTED"
-                        ? "text-[#FF8FA3]"
+                        ? "text-[var(--color-charcoal)]"
                         : pendingInfo.review_status === "APPROVED"
-                        ? "text-[#64F6A3]"
-                        : "text-[#F0BB5A]"
+                        ? "text-[var(--color-sky)]"
+                        : "text-[var(--color-blue)]"
                     }`}
                   >
                     {pendingInfo.review_status === "REJECTED"
@@ -444,18 +437,28 @@ export default function LoanForm() {
                   <h3 className="text-2xl font-semibold">
                     {pendingInfo.application_id}
                   </h3>
-                  <p className="text-sm text-[#C3CDDA]">
+                  <p className="text-sm text-[var(--color-text)]">
                     Your request is queued for an analyst. Monitor progress below.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-[#A5B8D0]">Review status</p>
-                    <p className="font-semibold">{pendingInfo.review_status}</p>
+                    <p className="text-[var(--color-sky)]">Review status</p>
+                    {(() => {
+                      const tone = getStatusChipStyles(pendingInfo.review_status);
+                      return (
+                        <span
+                          className="inline-flex items-center mt-1 rounded-full px-3 py-1 text-xs font-semibold tracking-wide border"
+                          style={tone.style}
+                        >
+                          {tone.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   {pendingInfo.submitted_at && (
                     <div>
-                      <p className="text-[#A5B8D0]">Submitted</p>
+                      <p className="text-[var(--color-sky)]">Submitted</p>
                       <p>
                         {new Date(pendingInfo.submitted_at).toLocaleString(undefined, {
                           dateStyle: "medium",
@@ -470,9 +473,9 @@ export default function LoanForm() {
           </div>
 
           <aside className="space-y-6">
-            <div className="bg-gradient-to-br from-[#1F2A4A] to-[#14183A] rounded-3xl border border-white/10 p-5 space-y-3">
+            <div className="bg-gradient-to-br from-[var(--color-navy)] to-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/20 p-5 space-y-3">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-[#2178C4] flex items-center justify-center text-lg font-semibold">
+                <div className="h-12 w-12 rounded-2xl bg-[var(--color-blue)] flex items-center justify-center text-lg font-semibold">
                   {(currentUser?.name || formData.name || "Client")
                     .split(" ")
                     .map((part) => part[0])
@@ -481,7 +484,7 @@ export default function LoanForm() {
                     .toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+                  <p className="text-sm text-[var(--color-sky)] uppercase tracking-[0.3em]">
                     Signed in
                   </p>
                   <p className="text-lg font-semibold">
@@ -489,29 +492,29 @@ export default function LoanForm() {
                   </p>
                 </div>
               </div>
-              <div className="text-sm text-[#C3CDDA] space-y-1">
+              <div className="text-sm text-[var(--color-text)] space-y-1">
                 <p>{currentUser?.email || formData.email || "—"}</p>
-                <p className="text-xs text-[#7A82AE]">
+                <p className="text-xs text-[var(--color-gray)]">
                   Role: {(currentUser?.role || "Client").toUpperCase()}
                 </p>
               </div>
-              <div className="flex items-center justify-between text-xs text-[#A5B8D0] border-t border-white/10 pt-3">
+              <div className="flex items-center justify-between text-xs text-[var(--color-sky)] border-t border-[var(--color-blue)]/20 pt-3">
                 <span>{accounts.length ? `${accounts.length} accounts linked` : "No accounts yet"}</span>
-                <span className="text-[#64F6A3]">
+                <span className="text-[var(--color-sky)]">
                   {requests.length ? `${requests.length} requests` : "New applicant"}
                 </span>
               </div>
             </div>
-            <div className="bg-[#1B1F35] rounded-3xl border border-white/5 p-6 space-y-4">
+            <div className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/20 p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.3em] text-[#A5B8D0]">
+                  <p className="text-sm uppercase tracking-[0.3em] text-[var(--color-sky)]">
                     My Portfolio
                   </p>
                   <h3 className="text-2xl font-semibold">Your Requests</h3>
                 </div>
                 <button
-                  className="text-xs text-[#A5B8D0] hover:text-white"
+                  className="text-xs text-[var(--color-sky)] hover:text-[var(--color-text)]"
                   onClick={() => {
                     const email = currentUser?.email || formData.email;
                     if (email) loadRequests(email);
@@ -523,12 +526,12 @@ export default function LoanForm() {
 
               {requestsLoading ? (
                 <div className="flex justify-center py-10">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[#2178C4]" />
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[var(--color-blue)]" />
                 </div>
               ) : requestsError ? (
-                <p className="text-sm text-red-300">{requestsError}</p>
+                <p className="text-sm text-[var(--color-text)]">{requestsError}</p>
               ) : requests.length === 0 ? (
-                <p className="text-sm text-[#C3CDDA]">
+                <p className="text-sm text-[var(--color-text)]">
                   You haven’t submitted any loan applications yet.
                 </p>
               ) : (
@@ -538,23 +541,28 @@ export default function LoanForm() {
                       req.final_status && req.final_status !== "PENDING"
                         ? req.final_status
                         : req.review_status || "PENDING";
-                    const tone = statusTone(status);
+                    const tone = getStatusChipStyles(status);
                     return (
                       <div
                         key={req.application_id}
-                        className="border border-white/10 rounded-2xl p-4 bg-[#14183A]"
+                        className="border border-[var(--color-blue)]/20 rounded-2xl p-4 bg-[var(--color-navy)]"
                       >
-                        <p className="text-xs uppercase tracking-[0.3em] text-[#A5B8D0]">
+                        <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-sky)]">
                           {req.application_id}
                         </p>
                         <p className="text-lg font-semibold mt-1">
                           {req.loan_purpose || "Loan Request"}
                         </p>
-                        <p className="text-sm text-[#C3CDDA]">
+                        <p className="text-sm text-[var(--color-text)]">
                           ${Number(req.loan_amount).toLocaleString()}
                         </p>
-                        <p className={`mt-2 text-sm font-semibold ${tone.color}`}>
-                          {tone.label}
+                        <p className="mt-2">
+                          <span
+                            className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide border"
+                            style={tone.style}
+                          >
+                            {tone.label}
+                          </span>
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2 text-xs">
                           {[
@@ -562,62 +570,67 @@ export default function LoanForm() {
                             { key: "compliance_status", label: "Compliance" },
                             { key: "eligibility_status", label: "Eligibility" }
                           ].map((stage) => {
-                            const stageTone = statusTone(req[stage.key]);
+                            const stageTone = getStatusChipStyles(req[stage.key]);
                             return (
                               <span
                                 key={`${req.application_id}-${stage.key}`}
-                                className={`px-3 py-1 rounded-full border border-white/10 bg-white/5 ${stageTone.color}`}
+                                className="px-3 py-1 rounded-full text-xs font-semibold tracking-wide border"
+                                style={stageTone.style}
                               >
                                 {stage.label}: {stageTone.label}
                               </span>
                             );
                           })}
                         </div>
-                        {(req.model_decision || req.model_score != null) && (
-                          <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-[#1F2A4A] to-[#14183A] border border-white/10">
-                            <div className="flex items-center justify-between text-xs font-semibold">
-                              <span className="text-[#A5B8D0]">Model verdict</span>
-                              <span
-                                className={`px-2 py-0.5 rounded-full ${
-                                  req.model_decision === "MODEL_APPROVE"
-                                    ? "bg-[#64F6A3]/20 text-[#64F6A3]"
-                                    : req.model_decision === "MODEL_REJECT"
-                                    ? "bg-[#FF8FA3]/20 text-[#FF8FA3]"
-                                    : "bg-[#F0BB5A]/20 text-[#F0BB5A]"
-                                }`}
+                        {(req.model_decision || req.model_score != null) &&
+                          (() => {
+                            const verdictStyles = getModelVerdictStyles(
+                              req.model_decision
+                            );
+                            return (
+                              <div
+                                className="mt-3 p-3 rounded-2xl border"
+                                style={verdictStyles.container}
                               >
-                                {(req.model_decision || "MODEL_REVIEW")
-                                  .replace("MODEL_", "")
-                                  .toUpperCase()}
-                              </span>
-                            </div>
-                            {req.model_score != null && (
-                              <div className="mt-2">
-                                <div className="flex justify-between text-[11px] text-[#7A82AE] uppercase">
-                                  <span>Confidence</span>
-                                  <span>{(Number(req.model_score) * 100).toFixed(1)}%</span>
+                                <div className="flex items-center justify-between text-xs font-semibold">
+                                  <span>Model verdict</span>
+                                  <span
+                                    className="px-2 py-0.5 rounded-full border text-xs font-semibold tracking-wide"
+                                    style={verdictStyles.badge}
+                                  >
+                                    {(req.model_decision || "MODEL_REVIEW")
+                                      .replace("MODEL_", "")
+                                      .toUpperCase()}
+                                  </span>
                                 </div>
-                                <div className="mt-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${
-                                      req.model_decision === "MODEL_APPROVE"
-                                        ? "bg-[#64F6A3]"
-                                        : req.model_decision === "MODEL_REJECT"
-                                        ? "bg-[#FF8FA3]"
-                                        : "bg-[#F0BB5A]"
-                                    }`}
-                                    style={{
-                                      width: `${Math.min(
-                                        100,
-                                        Math.max(0, Number(req.model_score) * 100)
-                                      )}%`
-                                    }}
-                                  />
-                                </div>
+                                {req.model_score != null && (
+                                  <div className="mt-2">
+                                    <div className="flex justify-between text-[11px] uppercase">
+                                      <span>Confidence</span>
+                                      <span>
+                                        {(Number(req.model_score) * 100).toFixed(1)}%
+                                      </span>
+                                    </div>
+                                    <div
+                                      className="mt-1 h-1.5 rounded-full overflow-hidden"
+                                      style={{ backgroundColor: "var(--color-blue-softer)" }}
+                                    >
+                                      <div
+                                        className="h-full rounded-full"
+                                        style={{
+                                          width: `${Math.min(
+                                            100,
+                                            Math.max(0, Number(req.model_score) * 100)
+                                          )}%`,
+                                          backgroundColor: verdictStyles.barColor
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        )}
+                            );
+                          })()}
                       </div>
                     );
                   })}

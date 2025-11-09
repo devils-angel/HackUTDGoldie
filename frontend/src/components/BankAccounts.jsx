@@ -86,30 +86,30 @@ export default function BankAccounts() {
   );
 
   return (
-    <div className="min-h-screen lg:flex bg-[#101327] text-white">
+    <div className="min-h-screen lg:flex bg-[var(--color-navy)] text-[var(--color-text)]">
       <Sidebar />
       <div className="flex-1 px-6 py-10 md:px-10 space-y-8">
         <header className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
+          <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
             My Accounts
           </p>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
               <h1 className="text-4xl font-semibold">Bank Accounts</h1>
-              <p className="text-[#C3CDDA]">
+              <p className="text-[var(--color-text)]">
                 Linked accounts used for loan disbursement and repayment.
               </p>
             </div>
             <div className="flex gap-3 flex-wrap">
               <button
                 onClick={() => user && loadAccounts(user)}
-                className="bg-white/5 border border-white/10 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-white/10 transition"
+                className="bg-[var(--color-blue)]/10 border border-[var(--color-blue)]/20 text-[var(--color-text)] px-5 py-3 rounded-2xl font-semibold hover:bg-[var(--color-blue)]/20 transition"
               >
                 Refresh
               </button>
               <button
                 onClick={() => setShowForm((prev) => !prev)}
-                className="bg-[#2178C4] text-white px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition"
+                className="bg-[var(--color-blue)] text-[var(--color-text)] px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition"
               >
                 {showForm ? "Close form" : "Add account"}
               </button>
@@ -118,28 +118,28 @@ export default function BankAccounts() {
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#1F2A4A] to-[#12152D] p-6">
-            <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+          <div className="rounded-3xl border border-[var(--color-blue)]/20 bg-gradient-to-br from-[var(--color-navy)] to-[var(--color-navy)] p-6">
+            <p className="text-sm text-[var(--color-sky)] uppercase tracking-[0.3em]">
               Total Balance
             </p>
             <h3 className="text-3xl font-semibold mt-2">
               ${totalBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </h3>
-            <p className="text-xs text-[#7A82AE] mt-1">
+            <p className="text-xs text-[var(--color-gray)] mt-1">
               Across {accounts.length || "no"} accounts
             </p>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-[#1B1F35] p-6">
-            <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+          <div className="rounded-3xl border border-[var(--color-blue)]/20 bg-[var(--color-charcoal)] p-6">
+            <p className="text-sm text-[var(--color-sky)] uppercase tracking-[0.3em]">
               Linked Accounts
             </p>
             <h3 className="text-3xl font-semibold mt-2">{accounts.length}</h3>
-            <p className="text-xs text-[#7A82AE] mt-1">
+            <p className="text-xs text-[var(--color-gray)] mt-1">
               Client workspace can attach one per loan request.
             </p>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-[#10163A] p-6">
-            <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+          <div className="rounded-3xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] p-6">
+            <p className="text-sm text-[var(--color-sky)] uppercase tracking-[0.3em]">
               Primary Disbursement
             </p>
             {accounts[0] ? (
@@ -147,12 +147,12 @@ export default function BankAccounts() {
                 <h3 className="text-xl font-semibold mt-2">
                   {accounts[0].bank_name}
                 </h3>
-                <p className="text-sm text-[#C3CDDA]">
+                <p className="text-sm text-[var(--color-text)]">
                   {accounts[0].account_type} • #{accounts[0].account_number}
                 </p>
               </>
             ) : (
-              <p className="text-sm text-[#C3CDDA] mt-2">
+              <p className="text-sm text-[var(--color-text)] mt-2">
                 No accounts yet. Add one to unlock instant approvals.
               </p>
             )}
@@ -166,10 +166,10 @@ export default function BankAccounts() {
         )}
 
         {showForm && (
-        <section className="bg-[#1B1F35] rounded-3xl border border-white/5 p-6 space-y-6">
+        <section className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/10 p-6 space-y-6">
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold">Add Account</h2>
-            <p className="text-sm text-[#A5B8D0]">
+            <p className="text-sm text-[var(--color-sky)]">
               Capture the same intake questions our branch officers ask, so underwriting has a complete profile.
             </p>
           </div>
@@ -214,17 +214,17 @@ export default function BankAccounts() {
           >
             <section className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm text-[#A5B8D0]">Bank Name *</label>
+                <label className="text-sm text-[var(--color-sky)]">Bank Name *</label>
                 <input
                   type="text"
                   value={form.bank_name}
                   onChange={(e) => handleFormChange("bank_name", e.target.value)}
                   required
-                  className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                  className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-[#A5B8D0]">
+                <label className="text-sm text-[var(--color-sky)]">
                   Account Type *
                 </label>
                 <select
@@ -232,7 +232,7 @@ export default function BankAccounts() {
                   onChange={(e) =>
                     handleFormChange("account_type", e.target.value)
                   }
-                  className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                  className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                 >
                   {ACCOUNT_TYPES.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -242,13 +242,13 @@ export default function BankAccounts() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-[#A5B8D0]">
+                <label className="text-sm text-[var(--color-sky)]">
                   Primary Purpose *
                 </label>
                 <select
                   value={form.purpose}
                   onChange={(e) => handleFormChange("purpose", e.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                  className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                 >
                   {ACCOUNT_PURPOSES.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -262,13 +262,13 @@ export default function BankAccounts() {
             <section className="space-y-4">
               <div>
                 <h3 className="font-semibold text-xl">Personal Details</h3>
-                <p className="text-sm text-[#A5B8D0]">
+                <p className="text-sm text-[var(--color-sky)]">
                   Used for CIP, KYC, and sanctions screening requirements.
                 </p>
               </div>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm text-[#A5B8D0]">
+                  <label className="text-sm text-[var(--color-sky)]">
                     Legal Name *
                   </label>
                   <input
@@ -278,31 +278,31 @@ export default function BankAccounts() {
                       handleFormChange("legal_name", e.target.value)
                     }
                     required
-                    className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-[#A5B8D0]">Date of Birth *</label>
+                  <label className="text-sm text-[var(--color-sky)]">Date of Birth *</label>
                   <input
                     type="date"
                     value={form.dob}
                     onChange={(e) => handleFormChange("dob", e.target.value)}
                     required
-                    className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-[#A5B8D0]">SSN *</label>
+                  <label className="text-sm text-[var(--color-sky)]">SSN *</label>
                   <input
                     type="text"
                     value={form.ssn}
                     onChange={(e) => handleFormChange("ssn", e.target.value)}
                     required
-                    className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-[#A5B8D0]">
+                  <label className="text-sm text-[var(--color-sky)]">
                     Citizen Status *
                   </label>
                   <input
@@ -313,13 +313,13 @@ export default function BankAccounts() {
                     }
                     placeholder="US Citizen, Permanent Resident…"
                     required
-                    className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                   />
                 </div>
               </div>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm text-[#A5B8D0]">
+                  <label className="text-sm text-[var(--color-sky)]">
                     Residential Address *
                   </label>
                   <textarea
@@ -328,11 +328,11 @@ export default function BankAccounts() {
                       handleFormChange("residential_address", e.target.value)
                     }
                     required
-                    className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-[#A5B8D0]">
+                  <label className="text-sm text-[var(--color-sky)]">
                     Mailing Address *
                   </label>
                   <textarea
@@ -341,29 +341,29 @@ export default function BankAccounts() {
                       handleFormChange("mailing_address", e.target.value)
                     }
                     required
-                    className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                   />
                 </div>
               </div>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm text-[#A5B8D0]">Email *</label>
+                  <label className="text-sm text-[var(--color-sky)]">Email *</label>
                   <input
                     type="email"
                     value={form.email}
                     readOnly
                     disabled
-                    className="w-full rounded-2xl border border-white/10 bg-[#1F2240] px-4 py-3 text-white outline-none opacity-70 cursor-not-allowed"
+                    className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none opacity-70 cursor-not-allowed"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-[#A5B8D0]">Phone *</label>
+                  <label className="text-sm text-[var(--color-sky)]">Phone *</label>
                   <input
                     type="tel"
                     value={form.phone}
                     onChange={(e) => handleFormChange("phone", e.target.value)}
                     required
-                    className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                    className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                   />
                 </div>
               </div>
@@ -371,15 +371,15 @@ export default function BankAccounts() {
 
             <section className="grid gap-5 md:grid-cols-3">
               <div className="space-y-2">
-                <label className="text-sm text-[#A5B8D0]">Employed *</label>
+                <label className="text-sm text-[var(--color-sky)]">Employed *</label>
                 <div className="flex gap-3">
                   {["yes", "no"].map((option) => (
                     <label
                       key={option}
                       className={`flex-1 text-center rounded-2xl border px-4 py-3 cursor-pointer transition ${
                         form.employed === option
-                          ? "border-[#2178C4] bg-[#2178C4]/10"
-                          : "border-white/10 bg-[#15193A]"
+                          ? "border-[var(--color-blue)] bg-[var(--color-blue)]/10"
+                          : "border-[var(--color-blue)]/20 bg-[var(--color-navy)]"
                       }`}
                     >
                       <input
@@ -400,7 +400,7 @@ export default function BankAccounts() {
                 </div>
               </div>
               <div className="space-y-2 md:col-span-2">
-                <label className="text-sm text-[#A5B8D0]">
+                <label className="text-sm text-[var(--color-sky)]">
                   Annual Income (USD) *
                 </label>
                 <input
@@ -412,13 +412,13 @@ export default function BankAccounts() {
                     handleFormChange("annual_income", e.target.value)
                   }
                   required
-                  className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                  className="w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                 />
               </div>
             </section>
 
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="space-y-1 text-sm text-[#A5B8D0]">
+              <div className="space-y-1 text-sm text-[var(--color-sky)]">
                 <p>Optional opening deposit</p>
                 <input
                   type="number"
@@ -426,12 +426,12 @@ export default function BankAccounts() {
                   step="0.01"
                   value={form.balance}
                   onChange={(e) => handleFormChange("balance", e.target.value)}
-                  className="w-48 rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                  className="w-48 rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] outline-none"
                 />
               </div>
               <button
                 disabled={saving}
-                className="bg-[#2178C4] text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[var(--color-blue)] text-[var(--color-text)] px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? "Saving…" : "Submit account application"}
               </button>
@@ -442,19 +442,19 @@ export default function BankAccounts() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#2178C4]" />
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[var(--color-blue)]" />
           </div>
         ) : accounts.length === 0 ? (
-          <div className="p-8 rounded-3xl border border-dashed border-[#2178C4]/40 bg-[#14183A] text-center space-y-3">
-            <p className="text-lg font-semibold text-white">
+          <div className="p-8 rounded-3xl border border-dashed border-[var(--color-blue)]/40 bg-[var(--color-navy)] text-center space-y-3">
+            <p className="text-lg font-semibold text-[var(--color-text)]">
               No accounts linked yet
             </p>
-            <p className="text-sm text-[#C3CDDA] max-w-lg mx-auto">
+            <p className="text-sm text-[var(--color-text)] max-w-lg mx-auto">
               Add a checking, savings, student, or business account to speed up disbursement and repayment workflows.
             </p>
             <button
               onClick={() => setShowForm(true)}
-              className="bg-[#2178C4] text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition"
+              className="bg-[var(--color-blue)] text-[var(--color-text)] px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition"
             >
               Add your first account
             </button>
@@ -464,28 +464,28 @@ export default function BankAccounts() {
             {accounts.map((account) => (
               <div
                 key={account.id}
-                className="bg-[#1B1F35] border border-white/10 rounded-3xl p-6 space-y-3"
+                className="bg-[var(--color-charcoal)] border border-[var(--color-blue)]/20 rounded-3xl p-6 space-y-3"
               >
-                <p className="text-sm uppercase tracking-[0.3em] text-[#A5B8D0]">
+                <p className="text-sm uppercase tracking-[0.3em] text-[var(--color-sky)]">
                   {account.bank_name}
                 </p>
                 <h3 className="text-2xl font-semibold">
                   {account.account_type}
                 </h3>
-                <p className="text-sm text-[#C3CDDA] flex items-center justify-between gap-3">
+                <p className="text-sm text-[var(--color-text)] flex items-center justify-between gap-3">
                   <span>Account #{account.account_number}</span>
-                  <span className="text-xs px-3 py-1 rounded-full border border-white/10 bg-white/5">
+                  <span className="text-xs px-3 py-1 rounded-full border border-[var(--color-blue)]/20 bg-[var(--color-blue)]/10">
                     {account.purpose?.replace(/_/g, " ") || "Purpose N/A"}
                   </span>
                 </p>
-                <div className="space-y-1 text-sm text-[#C3CDDA]">
+                <div className="space-y-1 text-sm text-[var(--color-text)]">
                   <p>
                     Balance: ${Number(account.balance).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </p>
                   {account.legal_name && <p>Owner: {account.legal_name}</p>}
                   {account.phone && <p>Phone: {account.phone}</p>}
                 </div>
-                <p className="text-xs text-[#A5B8D0]">
+                <p className="text-xs text-[var(--color-sky)]">
                   Added on {new Date(account.created_at).toLocaleDateString()}
                 </p>
               </div>

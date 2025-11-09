@@ -75,22 +75,22 @@ export default function Dashboard() {
   }, [marketRows]);
 
   return (
-    <div className="min-h-screen lg:flex bg-[#101327] text-white">
+    <div className="min-h-screen lg:flex bg-[var(--color-navy)] text-[var(--color-text)]">
       <Sidebar />
       <div className="flex-1 px-6 py-10 md:px-10 space-y-10">
         <header className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
+          <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
             Goldman Intelligence
           </p>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
               <h1 className="text-4xl font-semibold">Loan dashboard</h1>
-              <p className="text-[#C3CDDA] mt-2">
+              <p className="text-[var(--color-text)] mt-2">
                 Portfolio KPIs across underwriting, geography, and verification
                 stages.
               </p>
             </div>
-            <button className="self-start md:self-auto bg-[#2178C4] text-white px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition">
+            <button className="self-start md:self-auto bg-[var(--color-blue)] text-[var(--color-text)] px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition">
               Export report
             </button>
           </div>
@@ -118,9 +118,9 @@ export default function Dashboard() {
             ].map((card) => (
               <article
                 key={card.label}
-                className="rounded-3xl bg-[#1B1F35] p-6 border border-white/5"
+                className="rounded-3xl bg-[var(--color-charcoal)] p-6 border border-[var(--color-blue)]/10"
               >
-                <p className="text-sm text-[#A5B8D0]">{card.label}</p>
+                <p className="text-sm text-[var(--color-sky)]">{card.label}</p>
                 <h3 className="text-4xl font-semibold mt-2">{card.value}</h3>
               </article>
             ))}
@@ -132,16 +132,16 @@ export default function Dashboard() {
             {["kyc", "compliance", "eligibility"].map((key) => (
               <article
                 key={key}
-                className="rounded-3xl bg-[#1B1F35] p-6 border border-white/5 space-y-3"
+                className="rounded-3xl bg-[var(--color-charcoal)] p-6 border border-[var(--color-blue)]/10 space-y-3"
               >
-                <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+                <p className="text-sm text-[var(--color-sky)] uppercase tracking-[0.3em]">
                   {key}
                 </p>
-                <div className="flex justify-between text-sm text-[#C3CDDA]">
+                <div className="flex justify-between text-sm text-[var(--color-text)]">
                   <span>Approved</span>
                   <span>{verificationStats[key].approved}</span>
                 </div>
-                <div className="flex justify-between text-sm text-[#C3CDDA]">
+                <div className="flex justify-between text-sm text-[var(--color-text)]">
                   <span>Rejected</span>
                   <span>{verificationStats[key].rejected}</span>
                 </div>
@@ -149,7 +149,7 @@ export default function Dashboard() {
                   {verificationStats[key].pass_rate}%
                 </p>
                 {key === "compliance" && (
-                  <p className="text-xs text-[#C3CDDA]">
+                  <p className="text-xs text-[var(--color-text)]">
                     Political flags: {verificationStats.compliance.political_connections}
                     <br />
                     Senior ties: {verificationStats.compliance.senior_relatives}
@@ -184,9 +184,9 @@ export default function Dashboard() {
             ].map((card) => (
               <article
                 key={card.label}
-                className="rounded-3xl bg-[#1B1F35] p-6 border border-white/5"
+                className="rounded-3xl bg-[var(--color-charcoal)] p-6 border border-[var(--color-blue)]/10"
               >
-                <p className="text-sm text-[#A5B8D0]">{card.label}</p>
+                <p className="text-sm text-[var(--color-sky)]">{card.label}</p>
                 <h3 className="text-4xl font-semibold mt-2">{card.value}</h3>
               </article>
             ))}
@@ -194,11 +194,11 @@ export default function Dashboard() {
         )}
 
         {regions.length > 0 && (
-          <section className="bg-[#1B1F35] rounded-3xl border border-white/5 p-6">
+          <section className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/10 p-6">
             <h2 className="text-2xl font-semibold mb-4">Regional mix</h2>
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm border-separate border-spacing-y-2">
-                <thead className="text-[#A5B8D0]">
+                <thead className="text-[var(--color-sky)]">
                   <tr>
                     <th className="px-4 py-2">Region</th>
                     <th className="px-4 py-2">Total</th>
@@ -211,7 +211,7 @@ export default function Dashboard() {
                   {regions.map((region) => (
                     <tr
                       key={region.region}
-                      className="bg-[#22263F] rounded-2xl shadow-inner shadow-black/10"
+                      className="bg-[var(--color-navy)] rounded-2xl shadow-inner shadow-black/10"
                     >
                       <td className="px-4 py-3">{region.region}</td>
                       <td className="px-4 py-3">{region.total}</td>
@@ -227,11 +227,11 @@ export default function Dashboard() {
         )}
 
         {countries.length > 0 && (
-          <section className="bg-[#1B1F35] rounded-3xl border border-white/5 p-6">
+          <section className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/10 p-6">
             <h2 className="text-2xl font-semibold mb-4">Country stats</h2>
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm border-separate border-spacing-y-2">
-                <thead className="text-[#A5B8D0]">
+                <thead className="text-[var(--color-sky)]">
                   <tr>
                     <th className="px-4 py-2">Country</th>
                     <th className="px-4 py-2">Region</th>
@@ -244,10 +244,10 @@ export default function Dashboard() {
                   {countries.slice(0, 10).map((country) => (
                     <tr
                       key={`${country.country}-${country.region}`}
-                      className="bg-[#22263F] rounded-2xl shadow-inner shadow-black/10"
+                      className="bg-[var(--color-navy)] rounded-2xl shadow-inner shadow-black/10"
                     >
                       <td className="px-4 py-3">{country.country}</td>
-                      <td className="px-4 py-3 text-[#C3CDDA]">
+                      <td className="px-4 py-3 text-[var(--color-text)]">
                         {country.region}
                       </td>
                       <td className="px-4 py-3">{country.total}</td>
@@ -261,11 +261,11 @@ export default function Dashboard() {
           </section>
         )}
 
-        <section className="bg-[#1B1F35] rounded-3xl border border-white/5 p-6">
+        <section className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/10 p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
               <h2 className="text-2xl font-semibold">Equity tape</h2>
-              <p className="text-sm text-[#C3CDDA]">
+              <p className="text-sm text-[var(--color-text)]">
                 Optimized for rapid scanning and responsive layouts.
               </p>
             </div>
@@ -274,7 +274,7 @@ export default function Dashboard() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm border-separate border-spacing-y-2">
               <thead>
-                <tr className="text-[#A5B8D0]">
+                <tr className="text-[var(--color-sky)]">
                   {marketRows.length > 0 &&
                     Object.keys(marketRows[0]).map((key) => (
                       <th key={key} className="px-4 py-2 capitalize">
@@ -287,10 +287,10 @@ export default function Dashboard() {
                 {marketRows.map((row, i) => (
                   <tr
                     key={i}
-                    className="bg-[#22263F] rounded-2xl shadow-inner shadow-black/10"
+                    className="bg-[var(--color-navy)] rounded-2xl shadow-inner shadow-black/10"
                   >
                     {Object.values(row).map((val, j) => (
-                      <td key={j} className="px-4 py-3 text-white/90">
+                      <td key={j} className="px-4 py-3 text-[var(--color-text)]/90">
                         {val ?? "—"}
                       </td>
                     ))}
@@ -298,7 +298,7 @@ export default function Dashboard() {
                 ))}
                 {!marketRows.length && (
                   <tr>
-                    <td className="px-4 py-6 text-[#C3CDDA]">
+                    <td className="px-4 py-6 text-[var(--color-text)]">
                       {loading ? "Loading intelligence feed…" : "No data"}
                     </td>
                   </tr>

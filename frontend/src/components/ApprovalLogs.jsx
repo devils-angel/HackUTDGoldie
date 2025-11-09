@@ -26,22 +26,22 @@ export default function ApprovalLogs() {
   }, []);
 
   return (
-    <div className="min-h-screen lg:flex bg-[#101327] text-white">
+    <div className="min-h-screen lg:flex bg-[var(--color-navy)] text-[var(--color-text)]">
       <Sidebar />
       <div className="flex-1 px-6 py-10 md:px-10 space-y-8">
         <header className="space-y-3 md:flex md:items-end md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
+            <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
               Audit Trail
             </p>
             <h1 className="text-4xl font-semibold">Approval Log</h1>
-            <p className="text-[#C3CDDA]">
+            <p className="text-[var(--color-text)]">
               Timeline of every manual approval and rejection event.
             </p>
           </div>
           <button
             onClick={loadLogs}
-            className="mt-4 md:mt-0 px-4 py-2 rounded-2xl border border-white/20 hover:border-white/60 text-sm transition"
+            className="mt-4 md:mt-0 px-4 py-2 rounded-2xl border border-[var(--color-blue)]/30 hover:border-[var(--color-border-strong)] text-sm transition"
           >
             Refresh
           </button>
@@ -55,16 +55,16 @@ export default function ApprovalLogs() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#2178C4]" />
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[var(--color-blue)]" />
           </div>
         ) : logs.length === 0 ? (
-          <div className="p-6 rounded-3xl border border-white/10 bg-[#1B1F35] text-center text-[#C3CDDA]">
+          <div className="p-6 rounded-3xl border border-[var(--color-blue)]/20 bg-[var(--color-charcoal)] text-center text-[var(--color-text)]">
             No approval activity yet.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border-separate border-spacing-y-2">
-              <thead className="text-[#A5B8D0]">
+              <thead className="text-[var(--color-sky)]">
                 <tr>
                   <th className="text-left px-4 py-2">Application</th>
                   <th className="text-left px-4 py-2">Stage</th>
@@ -78,7 +78,7 @@ export default function ApprovalLogs() {
                 {logs.map((log) => (
                   <tr
                     key={log.id}
-                    className="bg-[#1B1F35] border border-white/10 rounded-2xl text-white"
+                    className="bg-[var(--color-charcoal)] border border-[var(--color-blue)]/20 rounded-2xl text-[var(--color-text)]"
                   >
                     <td className="px-4 py-3 font-mono text-xs">
                       {log.application_id}
@@ -90,18 +90,18 @@ export default function ApprovalLogs() {
                         <>
                           <span className="font-semibold">{log.actor_email}</span>
                           <br />
-                          <span className="text-xs text-[#C3CDDA]">
+                          <span className="text-xs text-[var(--color-text)]">
                             {log.actor_role || "N/A"}
                           </span>
                         </>
                       ) : (
-                        <span className="text-[#C3CDDA]">System</span>
+                        <span className="text-[var(--color-text)]">System</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[#C3CDDA]">
+                    <td className="px-4 py-3 text-[var(--color-text)]">
                       {log.notes || "—"}
                     </td>
-                    <td className="px-4 py-3 text-[#C3CDDA]">
+                    <td className="px-4 py-3 text-[var(--color-text)]">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                   </tr>

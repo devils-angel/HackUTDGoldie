@@ -5,19 +5,13 @@ import {
   fetchPendingRequests,
   rejectLoanApplication,
 } from "../api";
+import { getStatusChipStyles, getModelVerdictStyles } from "../utils/statusStyles";
 
 const STAGES = [
   { key: "kyc_status", label: "KYC" },
   { key: "compliance_status", label: "Compliance" },
   { key: "eligibility_status", label: "Eligibility" },
 ];
-
-const statusTone = (value) => {
-  const upper = (value || "PENDING").toUpperCase();
-  if (upper === "APPROVED") return { color: "text-[#64F6A3]", label: "APPROVED" };
-  if (upper === "REJECTED") return { color: "text-[#FF8FA3]", label: "REJECTED" };
-  return { color: "text-[#F0BB5A]", label: upper };
-};
 
 const nextStageFor = (request) =>
   STAGES.find((stage) => (request[stage.key] || "PENDING") !== "APPROVED");
@@ -80,15 +74,15 @@ export default function PendingRequests() {
   };
 
   return (
-    <div className="min-h-screen lg:flex bg-[#101327] text-white">
+    <div className="min-h-screen lg:flex bg-[var(--color-navy)] text-[var(--color-text)]">
       <Sidebar />
       <div className="flex-1 px-6 py-10 md:px-10 space-y-8">
         <header className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
+          <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
             Manual Review
           </p>
           <h1 className="text-4xl font-semibold">Pending Requests</h1>
-          <p className="text-[#C3CDDA]">
+          <p className="text-[var(--color-text)]">
             Approve or reject new submissions before they enter automated
             underwriting.
           </p>
@@ -102,10 +96,10 @@ export default function PendingRequests() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#2178C4]" />
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[var(--color-blue)]" />
           </div>
         ) : requests.length === 0 ? (
-          <div className="p-6 rounded-3xl border border-white/10 bg-[#1B1F35] text-center text-[#C3CDDA]">
+          <div className="p-6 rounded-3xl border border-[var(--color-blue)]/20 bg-[var(--color-charcoal)] text-center text-[var(--color-text)]">
             No pending applications. All caught up!
           </div>
         ) : (
@@ -115,15 +109,15 @@ export default function PendingRequests() {
               return (
               <div
                 key={request.application_id}
-                className="bg-[#1B1F35] border border-white/10 rounded-3xl p-6 space-y-4"
+                className="bg-[var(--color-charcoal)] border border-[var(--color-blue)]/20 rounded-3xl p-6 space-y-4"
               >
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-[#A5B8D0]">
+                    <p className="text-sm uppercase tracking-[0.3em] text-[var(--color-sky)]">
                       {request.application_id}
                     </p>
                     <h3 className="text-2xl font-semibold">{request.name}</h3>
-                    <p className="text-sm text-[#C3CDDA]">
+                    <p className="text-sm text-[var(--color-text)]">
                       {request.region} · {request.country}
                     </p>
                   </div>
@@ -133,7 +127,7 @@ export default function PendingRequests() {
                       onClick={() =>
                         handleAction(request.application_id, "reject")
                       }
-                      className="px-5 py-2 rounded-2xl border border-white/20 hover:border-white/60 transition disabled:opacity-50"
+                      className="px-5 py-2 rounded-2xl border border-[var(--color-blue)]/30 hover:border-[var(--color-border-strong)] transition disabled:opacity-50"
                     >
                       Reject
                     </button>
@@ -145,7 +139,7 @@ export default function PendingRequests() {
                       onClick={() =>
                         handleAction(request.application_id, "approve")
                       }
-                      className="px-5 py-2 rounded-2xl bg-[#2178C4] shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition disabled:opacity-50"
+                      className="px-5 py-2 rounded-2xl bg-[var(--color-blue)] shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-50"
                     >
                       {nextStage
                         ? `Approve ${nextStage.label}`
@@ -156,80 +150,83 @@ export default function PendingRequests() {
 
                 <div className="flex flex-wrap gap-2 text-xs">
                   {STAGES.map((stage) => {
-                    const tone = statusTone(request[stage.key]);
+                    const tone = getStatusChipStyles(request[stage.key]);
                     return (
                       <span
                         key={`${request.application_id}-${stage.key}`}
-                        className={`px-3 py-1 rounded-full border border-white/10 bg-white/5 ${tone.color}`}
+                        className="px-3 py-1 rounded-full text-xs font-semibold tracking-wide border"
+                        style={tone.style}
                       >
                         {stage.label}: {tone.label}
                       </span>
                     );
                   })}
                 </div>
-                {(request.model_decision || request.model_score != null) && (
-                  <div className="text-xs text-white mt-3 p-3 rounded-2xl bg-gradient-to-r from-[#1D2D4F] to-[#151B34] border border-white/10">
-                    <div className="flex items-center justify-between font-semibold">
-                      <span className="text-[#A5B8D0] tracking-[0.2em]">
-                        Model insight
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full ${
-                          request.model_decision === "MODEL_APPROVE"
-                            ? "bg-[#64F6A3]/20 text-[#64F6A3]"
-                            : request.model_decision === "MODEL_REJECT"
-                            ? "bg-[#FF8FA3]/20 text-[#FF8FA3]"
-                            : "bg-[#F0BB5A]/20 text-[#F0BB5A]"
-                        }`}
+                {(request.model_decision || request.model_score != null) &&
+                  (() => {
+                    const verdictStyles = getModelVerdictStyles(
+                      request.model_decision
+                    );
+                    return (
+                      <div
+                        className="text-xs mt-3 p-3 rounded-2xl border"
+                        style={verdictStyles.container}
                       >
-                        {(request.model_decision || "MODEL_REVIEW")
-                          .replace("MODEL_", "")
-                          .toUpperCase()}
-                      </span>
-                    </div>
-                    {request.model_score != null && (
-                      <div className="mt-2">
-                        <div className="flex justify-between text-[11px] text-[#7A82AE] uppercase">
-                          <span>Confidence</span>
-                          <span>{(Number(request.model_score) * 100).toFixed(1)}%</span>
+                        <div className="flex items-center justify-between font-semibold">
+                          <span>Model insight</span>
+                          <span
+                            className="px-2 py-0.5 rounded-full border text-xs font-semibold tracking-wide"
+                            style={verdictStyles.badge}
+                          >
+                            {(request.model_decision || "MODEL_REVIEW")
+                              .replace("MODEL_", "")
+                              .toUpperCase()}
+                          </span>
                         </div>
-                        <div className="mt-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              request.model_decision === "MODEL_APPROVE"
-                                ? "bg-[#64F6A3]"
-                                : request.model_decision === "MODEL_REJECT"
-                                ? "bg-[#FF8FA3]"
-                                : "bg-[#F0BB5A]"
-                            }`}
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                Math.max(0, Number(request.model_score) * 100)
-                              )}%`
-                            }}
-                          />
-                        </div>
+                        {request.model_score != null && (
+                          <div className="mt-2">
+                            <div className="flex justify-between text-[11px] uppercase">
+                              <span>Confidence</span>
+                              <span>
+                                {(Number(request.model_score) * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <div
+                              className="mt-1 h-1.5 rounded-full overflow-hidden"
+                              style={{ backgroundColor: "var(--color-blue-softer)" }}
+                            >
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    Math.max(0, Number(request.model_score) * 100)
+                                  )}%`,
+                                  backgroundColor: verdictStyles.barColor
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                )}
+                    );
+                  })()}
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-[#C3CDDA]">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-[var(--color-text)]">
                   <div>
-                    <p className="text-[#A5B8D0]">Income</p>
+                    <p className="text-[var(--color-sky)]">Income</p>
                     <p>${Number(request.income).toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-[#A5B8D0]">Debt</p>
+                    <p className="text-[var(--color-sky)]">Debt</p>
                     <p>${Number(request.debt).toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-[#A5B8D0]">Credit Score</p>
+                    <p className="text-[var(--color-sky)]">Credit Score</p>
                     <p>{request.credit_score}</p>
                   </div>
                   <div>
-                    <p className="text-[#A5B8D0]">Loan Amount</p>
+                    <p className="text-[var(--color-sky)]">Loan Amount</p>
                     <p>${Number(request.loan_amount).toLocaleString()}</p>
                   </div>
                 </div>

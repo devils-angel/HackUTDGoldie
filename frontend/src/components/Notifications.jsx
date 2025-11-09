@@ -3,8 +3,8 @@ import Sidebar from "./Sidebar";
 import { fetchNotifications, markNotificationsRead } from "../api";
 
 const statusTone = (status) => {
-  if (status === "READ") return "text-[#A5B8D0]";
-  return "text-[#64F6A3]";
+  if (status === "READ") return "text-[var(--color-sky)]";
+  return "text-[var(--color-sky)]";
 };
 
 export default function Notifications() {
@@ -73,30 +73,30 @@ export default function Notifications() {
   };
 
   return (
-    <div className="min-h-screen lg:flex bg-[#101327] text-white">
+    <div className="min-h-screen lg:flex bg-[var(--color-navy)] text-[var(--color-text)]">
       <Sidebar />
       <div className="flex-1 px-6 py-10 md:px-10 space-y-8">
         <header className="space-y-3 md:flex md:items-end md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
+            <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
               Notification Center
             </p>
             <h1 className="text-4xl font-semibold">Updates</h1>
-            <p className="text-[#C3CDDA]">
+            <p className="text-[var(--color-text)]">
               Review recent actions related to your loan workflow.
             </p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => user && loadNotifications(user)}
-              className="px-4 py-2 rounded-2xl border border-white/20 hover:border-white/60 text-sm transition"
+              className="px-4 py-2 rounded-2xl border border-[var(--color-blue)]/30 hover:border-[var(--color-border-strong)] text-sm transition"
             >
               Refresh
             </button>
             <button
               disabled={!selected.size}
               onClick={markRead}
-              className="px-4 py-2 rounded-2xl bg-[#2178C4] shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition disabled:opacity-50"
+              className="px-4 py-2 rounded-2xl bg-[var(--color-blue)] shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-50"
             >
               Mark as read
             </button>
@@ -111,10 +111,10 @@ export default function Notifications() {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#2178C4]" />
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[var(--color-blue)]" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="p-6 rounded-3xl border border-white/10 bg-[#1B1F35] text-center text-[#C3CDDA]">
+          <div className="p-6 rounded-3xl border border-[var(--color-blue)]/20 bg-[var(--color-charcoal)] text-center text-[var(--color-text)]">
             No notifications yet.
           </div>
         ) : (
@@ -122,7 +122,7 @@ export default function Notifications() {
             {notifications.map((notification) => (
               <label
                 key={notification.id}
-                className="flex flex-col gap-2 bg-[#1B1F35] border border-white/10 rounded-3xl p-5 cursor-pointer"
+                className="flex flex-col gap-2 bg-[var(--color-charcoal)] border border-[var(--color-blue)]/20 rounded-3xl p-5 cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -130,11 +130,11 @@ export default function Notifications() {
                       type="checkbox"
                       checked={selected.has(notification.id)}
                       onChange={() => toggleSelect(notification.id)}
-                      className="w-4 h-4 accent-[#2178C4]"
+                      className="w-4 h-4 accent-[var(--color-blue)]"
                     />
                     <div>
                       <p className="font-semibold">{notification.message}</p>
-                      <p className="text-xs text-[#C3CDDA]">
+                      <p className="text-xs text-[var(--color-text)]">
                         Application {notification.application_id}
                       </p>
                     </div>
@@ -147,7 +147,7 @@ export default function Notifications() {
                     {notification.status}
                   </span>
                 </div>
-                <p className="text-xs text-[#C3CDDA]">
+                <p className="text-xs text-[var(--color-text)]">
                   {new Date(notification.created_at).toLocaleString()}
                 </p>
               </label>

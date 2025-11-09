@@ -124,6 +124,7 @@ Vite will launch at `http://localhost:5173`. The UI calls the backend (default b
 - Deploy the FastAPI service (Docker, Render, etc.) and update `MODEL_ENDPOINT`.
 - Use HTTPS + secure storage for `.env`.
 - Frontend build: `cd frontend && npm run build`.
+- Use the sidebar’s “Switch to light/dark mode” button to preview both themes (palette adapts automatically via CSS variables).
 - Docker Compose is provided (`docker-compose.yml`) if you want containerized setup (update env accordingly).
 
 ---
