@@ -14,4 +14,5 @@ const API = axios.create({
 export const loginUser = (data) => API.post("/login", data);
 export const registerUser = (data) => API.post("/register", data);
 export const fetchData = () => API.get("/data");
-export const applyForLoan = (data) => API.post("/loan", data);
+export const applyForLoan = (data) => API.post("/loan-application/submit", data);
+// export const applyForLoan = (data) => API.post("/loan", data);
