@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 const roleLinks = {
@@ -21,28 +22,58 @@ const roleLinks = {
   ],
 };
 
-const getLinksForRole = () => {
-  if (typeof window === "undefined") return roleLinks.CLIENT;
-  const stored = localStorage.getItem("goldmanUser");
-  if (!stored) return roleLinks.CLIENT;
-  try {
-    const user = JSON.parse(stored);
-    return roleLinks[user.role?.toUpperCase()] || roleLinks.CLIENT;
-  } catch {
-    return roleLinks.CLIENT;
-  }
-};
+const defaultLinks = roleLinks.CLIENT;
+
+const getInitials = (name = "") =>
+  name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
 export default function Sidebar() {
-  const links = getLinksForRole();
+  const [links, setLinks] = useState(defaultLinks);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = localStorage.getItem("goldmanUser");
+      if (!stored) return;
+      const parsed = JSON.parse(stored);
+      setUser(parsed);
+      const role = parsed.role?.toUpperCase();
+      setLinks(roleLinks[role] || defaultLinks);
+    } catch {
+      setLinks(defaultLinks);
+    }
+  }, []);
+
   return (
     <aside className="hidden lg:flex w-72 bg-[#1B1F35] text-white flex-col justify-between py-10 px-8 shadow-2xl">
       <div className="space-y-10">
-        <div>
-          <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
-            Goldman
-          </p>
-          <h2 className="text-2xl font-semibold">Lending Suite</h2>
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
+              Goldman
+            </p>
+            <h2 className="text-2xl font-semibold">Lending Suite</h2>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div className="h-12 w-12 rounded-2xl bg-[#2178C4] flex items-center justify-center text-lg font-semibold">
+              {getInitials(user?.name || "Client User")}
+            </div>
+            <div className="text-sm">
+              <p className="text-white font-semibold">
+                {user?.name || "Client User"}
+              </p>
+              <p className="text-[#C3CDDA] text-xs">{user?.email || "—"}</p>
+              <p className="text-[#A5B8D0] text-[11px] uppercase tracking-[0.3em] mt-1">
+                {(user?.role || "Client").toUpperCase()}
+              </p>
+            </div>
+          </div>
         </div>
 
         <nav className="space-y-4">

@@ -450,6 +450,38 @@ export default function LoanForm() {
           </div>
 
           <aside className="space-y-6">
+            <div className="bg-gradient-to-br from-[#1F2A4A] to-[#14183A] rounded-3xl border border-white/10 p-5 space-y-3">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-[#2178C4] flex items-center justify-center text-lg font-semibold">
+                  {(currentUser?.name || formData.name || "Client")
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+                    Signed in
+                  </p>
+                  <p className="text-lg font-semibold">
+                    {currentUser?.name || formData.name || "Client User"}
+                  </p>
+                </div>
+              </div>
+              <div className="text-sm text-[#C3CDDA] space-y-1">
+                <p>{currentUser?.email || formData.email || "—"}</p>
+                <p className="text-xs text-[#7A82AE]">
+                  Role: {(currentUser?.role || "Client").toUpperCase()}
+                </p>
+              </div>
+              <div className="flex items-center justify-between text-xs text-[#A5B8D0] border-t border-white/10 pt-3">
+                <span>{accounts.length ? `${accounts.length} accounts linked` : "No accounts yet"}</span>
+                <span className="text-[#64F6A3]">
+                  {requests.length ? `${requests.length} requests` : "New applicant"}
+                </span>
+              </div>
+            </div>
             <div className="bg-[#1B1F35] rounded-3xl border border-white/5 p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
