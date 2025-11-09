@@ -13,17 +13,17 @@ export default function Login() {
       const user = response?.data?.user;
       const token = response?.data?.token;
       if (user) {
-        localStorage.setItem("goldmanUser", JSON.stringify(user));
+        localStorage.setItem("OnboardIQUser", JSON.stringify(user));
       }
       if (token) {
-        localStorage.setItem("goldmanToken", token);
+        localStorage.setItem("OnboardIQToken", token);
       }
       alert("Login successful!");
-      navigate("/dashboard");
+      navigate("/notifications");
     } catch (error) {
       console.error("Login failed:", error);
-      localStorage.removeItem("goldmanUser");
-      localStorage.removeItem("goldmanToken");
+      localStorage.removeItem("OnboardIQUser");
+      localStorage.removeItem("OnboardIQToken");
       alert("Unable to log in. Please check your credentials.");
     }
   };
@@ -34,7 +34,7 @@ export default function Login() {
         <div className="text-[var(--color-text)] space-y-6">
           <p className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.3em] text-[var(--color-sky)]">
             <span className="w-10 h-px bg-[var(--color-sky)]" />
-            Goldman Loan Suite
+            OnboardIQ Loan Suite
           </p>
           <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
             Welcome back, let’s keep your portfolio moving.
@@ -49,7 +49,7 @@ export default function Login() {
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold text-[var(--color-navy)]">Sign in</h2>
             <p className="text-sm text-gray-500">
-              Secure access to the Goldman lending platform.
+              Secure access to the OnboardIQ lending platform.
             </p>
           </div>
 

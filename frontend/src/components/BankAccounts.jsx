@@ -58,7 +58,7 @@ export default function BankAccounts() {
   };
 
   useEffect(() => {
-    const stored = localStorage.getItem("goldmanUser");
+    const stored = localStorage.getItem("OnboardIQUser");
     if (stored) {
       try {
         const profile = JSON.parse(stored);

@@ -1,16 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const ThemeContext = createContext({
-  theme: "dark",
+  theme: "light",
   toggleTheme: () => {},
 });
 
 const getInitialTheme = () => {
-  if (typeof window === "undefined") return "dark";
-  const stored = localStorage.getItem("goldmanTheme");
+  if (typeof window === "undefined") return "light";
+  const stored = localStorage.getItem("OnboardIQTheme");
   if (stored === "light" || stored === "dark") return stored;
-  const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-  return prefersLight ? "light" : "dark";
+  return "light";
 };
 
 export function ThemeProvider({ children }) {
@@ -20,7 +19,7 @@ export function ThemeProvider({ children }) {
     if (typeof document !== "undefined") {
       document.documentElement.setAttribute("data-theme", theme);
     }
-    localStorage.setItem("goldmanTheme", theme);
+    localStorage.setItem("OnboardIQTheme", theme);
   }, [theme]);
 
   const value = useMemo(

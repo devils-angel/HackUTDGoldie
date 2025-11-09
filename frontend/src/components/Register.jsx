@@ -24,17 +24,17 @@ export default function Register() {
       const user = response?.data?.user;
       const token = response?.data?.token;
       if (user) {
-        localStorage.setItem("goldmanUser", JSON.stringify(user));
+        localStorage.setItem("OnboardIQUser", JSON.stringify(user));
       }
       if (token) {
-        localStorage.setItem("goldmanToken", token);
+        localStorage.setItem("OnboardIQToken", token);
       }
       alert("Registration successful!");
       navigate("/dashboard");
     } catch (error) {
       console.error("Registration failed:", error);
-      localStorage.removeItem("goldmanUser");
-      localStorage.removeItem("goldmanToken");
+      localStorage.removeItem("OnboardIQUser");
+      localStorage.removeItem("OnboardIQToken");
       alert("Something went wrong. Please try again.");
     }
   };
@@ -45,7 +45,7 @@ export default function Register() {
         <div className="text-[var(--color-text)] space-y-6 order-2 md:order-1">
           <p className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.3em] text-[var(--color-sky)]">
             <span className="w-10 h-px bg-[var(--color-sky)]" />
-            Goldman Onboarding
+            OnboardIQ Onboarding
           </p>
           <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
             Open your access to enterprise-grade lending tools.

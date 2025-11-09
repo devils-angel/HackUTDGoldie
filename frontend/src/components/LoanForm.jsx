@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { applyForLoan, fetchUserLoans, fetchBankAccounts } from "../api";
+import {
+  applyForLoan,
+  fetchUserLoans,
+  fetchBankAccounts,
+  uploadNameVerificationDocument
+} from "../api";
 import { getStatusChipStyles, getModelVerdictStyles } from "../utils/statusStyles";
 
 const REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASIA"];
@@ -48,11 +53,21 @@ export default function LoanForm() {
   const [accounts, setAccounts] = useState([]);
   const [accountsError, setAccountsError] = useState(null);
   const [selectedAccount, setSelectedAccount] = useState("");
+  const [nameDocFile, setNameDocFile] = useState(null);
+  const [nameDocStatus, setNameDocStatus] = useState("IDLE");
+  const [nameDocMessage, setNameDocMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     setError(null);
+  };
+
+  const handleDocumentChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setNameDocFile(file);
+    setNameDocStatus(file ? "READY" : "IDLE");
+    setNameDocMessage(file ? `Selected ${file.name}` : "");
   };
 
   const loadRequests = async (email) => {
@@ -92,9 +107,15 @@ export default function LoanForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!nameDocFile) {
+      setError("Please attach a name verification document before submitting.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setPendingInfo(null);
+    setNameDocStatus("READY");
+    setNameDocMessage(nameDocFile ? `Selected ${nameDocFile.name}` : "");
 
     try {
       const response = await applyForLoan({
@@ -108,11 +129,41 @@ export default function LoanForm() {
         credit_score: parseInt(formData.credit_score, 10),
         loan_amount: parseFloat(formData.loan_amount),
         loan_purpose: formData.loan_purpose,
-        documents_uploaded: true,
+        documents_uploaded: Boolean(nameDocFile),
         bank_account_id: selectedAccount ? Number(selectedAccount) : undefined
       });
 
-      setPendingInfo(response.data.application);
+      const application = response.data.application;
+      setPendingInfo(application);
+
+      if (application?.application_id && nameDocFile) {
+        try {
+          setNameDocStatus("UPLOADING");
+          setNameDocMessage("Uploading name verification document…");
+          await uploadNameVerificationDocument({
+            applicationId: application.application_id,
+            file: nameDocFile,
+            title: `${formData.name}-Name Verification`,
+            type: "NAME_VERIFICATION"
+          });
+          setNameDocStatus("COMPLETED");
+          setNameDocMessage("Document uploaded successfully.");
+          setNameDocFile(null);
+        } catch (uploadErr) {
+          console.error("Failed to upload name verification document", uploadErr);
+          setNameDocStatus("ERROR");
+          setNameDocMessage(
+            uploadErr.response?.data?.error ||
+              "Failed to upload document. Please retry from your pending requests."
+          );
+        }
+      } else if (!application?.application_id) {
+        setNameDocStatus("ERROR");
+        setNameDocMessage(
+          "Unable to attach document because the application ID was not returned."
+        );
+      }
+
       const email = currentUser?.email || formData.email;
       if (email) {
         loadRequests(email);
@@ -130,7 +181,7 @@ export default function LoanForm() {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("goldmanUser");
+    const storedUser = localStorage.getItem("OnboardIQUser");
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
@@ -162,7 +213,7 @@ export default function LoanForm() {
       <div className="flex-1 px-6 py-10 md:px-10 space-y-10">
         <header className="space-y-3 text-center md:text-left">
           <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
-            Goldman Credit Desk
+            OnboardIQ Credit Desk
           </p>
           <h2 className="text-4xl md:text-5xl font-semibold leading-tight">
             Structure a new loan application with confidence.
@@ -273,6 +324,39 @@ export default function LoanForm() {
                         Add one
                       </Link>{" "}
                       to speed up disbursement.
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  <label className={labelClasses}>Name Verification Document *</label>
+                  <p className="text-xs text-[var(--color-sky)]">
+                    Upload a clear image or PDF of your government-issued ID. Required for each submission.
+                  </p>
+                  <label className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--color-blue)]/40 bg-[var(--color-blue-softer)] px-4 py-6 cursor-pointer hover:border-[var(--color-blue)] transition">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleDocumentChange}
+                      className="hidden"
+                    />
+                    <span className="text-sm font-semibold">
+                      {nameDocFile ? nameDocFile.name : "Click to select a file"}
+                    </span>
+                    <span className="text-xs text-[var(--color-sky)]">
+                      Accepted formats: JPG, PNG, PDF (max 5 MB)
+                    </span>
+                  </label>
+                  {nameDocMessage && (
+                    <p
+                      className={`text-xs ${
+                        nameDocStatus === "ERROR"
+                          ? "text-red-400"
+                          : nameDocStatus === "COMPLETED"
+                          ? "text-[var(--status-approve-text)]"
+                          : "text-[var(--color-sky)]"
+                      }`}
+                    >
+                      {nameDocMessage}
                     </p>
                   )}
                 </div>

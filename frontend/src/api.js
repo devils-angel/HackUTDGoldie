@@ -12,7 +12,7 @@ const API = axios.create({
 
 API.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("goldmanToken");
+    const token = localStorage.getItem("OnboardIQToken");
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
@@ -56,3 +56,23 @@ export const fetchBankAccounts = (email) =>
 export const addBankAccount = (payload) =>
   API.post("/bank-accounts", payload);
 // export const applyForLoan = (data) => API.post("/loan", data);
+
+export const uploadNameVerificationDocument = ({ applicationId, file, title, type }) => {
+  const formData = new FormData();
+  if (file) {
+    formData.append("document", file);
+  }
+  if (applicationId) {
+    formData.append("applicationId", applicationId);
+  }
+  if (title) {
+    formData.append("title", title);
+  }
+  if (type) {
+    formData.append("type", type);
+  }
+
+  return API.post("/loan-application/upload-name-doc", formData, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
+};

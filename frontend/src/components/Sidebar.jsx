@@ -39,8 +39,8 @@ export default function Sidebar() {
   const { theme, toggleTheme } = useTheme();
 
   const handleSignOut = () => {
-    localStorage.removeItem("goldmanUser");
-    localStorage.removeItem("goldmanToken");
+    localStorage.removeItem("OnboardIQUser");
+    localStorage.removeItem("OnboardIQToken");
     setUser(null);
     setLinks(defaultLinks);
   };
@@ -48,7 +48,7 @@ export default function Sidebar() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const stored = localStorage.getItem("goldmanUser");
+      const stored = localStorage.getItem("OnboardIQUser");
       if (!stored) return;
       const parsed = JSON.parse(stored);
       setUser(parsed);
@@ -65,7 +65,7 @@ export default function Sidebar() {
         <div className="space-y-4">
           <div>
             <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
-              Goldman
+              OnboardIQ
             </p>
             <h2 className="text-2xl font-semibold">Lending Suite</h2>
           </div>
@@ -115,8 +115,8 @@ export default function Sidebar() {
 
       <div className="rounded-2xl border border-[var(--color-blue)]/20 p-4 space-y-2 bg-[var(--color-blue)]/10">
         <p className="text-sm text-[var(--color-text)]">Need help?</p>
-        <p className="text-lg font-semibold text-[var(--color-text)]">Goldman Support</p>
-        <p className="text-xs text-[var(--color-text)]">support@goldman.com</p>
+        <p className="text-lg font-semibold text-[var(--color-text)]">OnboardIQ Support</p>
+        <p className="text-xs text-[var(--color-text)]">support@OnboardIQ.com</p>
       </div>
     </aside>
   );

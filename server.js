@@ -20,19 +20,25 @@ import {
   fetchBankAccountsByEmail,
   createBankAccount,
   getBankAccountById,
-  creditBankAccountBalance
+  creditBankAccountBalance,
+  appendDocumentToApplication,
+  updateDocumentOcrStatus
 } from "./loanService.js";
+import multer from "multer";
+import { uploadIdentityDocument, isS3Configured, getS3BucketInfo } from "./storageService.js";
 import { seedStocks } from "./seedData.js";
 import { seedLoanApplications } from "./seedLoanData.js";
 import { query } from "./db.js";
+import { runNameOcr } from "./textractService.js";
 
 const PORT = process.env.PORT || 5003;
-const JWT_SECRET = process.env.JWT_SECRET || "dev-goldman-secret";
+const JWT_SECRET = process.env.JWT_SECRET || "dev-OnboardIQ-secret";
 const MODEL_ENDPOINT = process.env.MODEL_ENDPOINT || "";
 const MODEL_TIMEOUT_MS = Number(process.env.MODEL_TIMEOUT_MS || 4000);
 const MODEL_AUTO_REJECT =
   (process.env.MODEL_AUTO_REJECT || "true").toLowerCase() === "true";
 const autoSeedOnStart = process.env.AUTO_SEED === "true";
+const { bucket: S3_BUCKET } = getS3BucketInfo();
 const USER_ROLES = ["ADMIN", "VENDOR", "CLIENT"];
 const normalizeRole = (value) =>
   (value || "CLIENT").toString().trim().toUpperCase();
@@ -213,6 +219,23 @@ app.use(express.json({ limit: "1mb" }));
 
 const asyncHandler = (handler) => (req, res, next) =>
   Promise.resolve(handler(req, res, next)).catch(next);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: Number(process.env.DOCUMENT_MAX_BYTES || 5 * 1024 * 1024)
+  },
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype.startsWith("image/") ||
+      file.mimetype === "application/pdf"
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image or PDF files are allowed for verification"));
+    }
+  }
+});
 
 const stockMapper = (row) => ({
   ...row,
@@ -505,6 +528,96 @@ app.post(
         review_status: application.review_status,
         submitted_at: application.created_at
       }
+    });
+  })
+);
+
+app.post(
+  "/loan-application/upload-name-doc",
+  authenticate,
+  upload.single("document"),
+  asyncHandler(async (req, res) => {
+    if (!isS3Configured()) {
+      return res
+        .status(500)
+        .json({ error: "S3 storage is not configured for uploads" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "Document file is required" });
+    }
+
+    const applicationId = req.body?.applicationId || null;
+    const docType = (req.body?.type || "NAME_VERIFICATION").toUpperCase();
+    const title = req.body?.title || req.file.originalname || "Name document";
+
+    const { key, url } = await uploadIdentityDocument({
+      buffer: req.file.buffer,
+      mimetype: req.file.mimetype,
+      originalname: req.file.originalname,
+      applicationId
+    });
+
+    const documentPayload = {
+      type: docType,
+      title,
+      status: "PENDING",
+      ocr_status: "PENDING",
+      storage_key: key,
+      url,
+      uploaded_by: req.user?.email || null,
+      uploaded_at: new Date().toISOString()
+    };
+
+    let updatedApplication = null;
+    if (applicationId) {
+      try {
+        updatedApplication = await appendDocumentToApplication(
+          applicationId,
+          documentPayload
+        );
+      } catch (err) {
+        if (err.message === "Application not found") {
+          return res.status(404).json({ error: "Loan application not found" });
+        }
+        throw err;
+      }
+    }
+
+    let applicationForOcr = updatedApplication;
+    if (!applicationForOcr && applicationId) {
+      applicationForOcr = await getLoanApplicationByApplicationId(applicationId);
+    }
+
+    if (applicationId && applicationForOcr) {
+      try {
+        const ocrResult = await runNameOcr({
+          key,
+          bucket: S3_BUCKET,
+          applicantName: applicationForOcr.name
+        });
+        if (ocrResult) {
+          await updateDocumentOcrStatus(applicationId, key, {
+            ocr_status: ocrResult.status,
+            ocr_extracted_name: ocrResult.extractedName,
+            ocr_confidence: ocrResult.confidence
+          });
+          applicationForOcr = await getLoanApplicationByApplicationId(applicationId);
+        }
+      } catch (ocrErr) {
+        console.error("OCR processing failed", ocrErr);
+      }
+    }
+
+    return res.json({
+      document: documentPayload,
+      location: url,
+      application:
+        applicationForOcr?.application_id === applicationId
+          ? {
+              application_id: applicationForOcr.application_id,
+              document_list: applicationForOcr.document_list
+            }
+          : null
     });
   })
 );

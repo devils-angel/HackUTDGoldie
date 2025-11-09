@@ -24,7 +24,7 @@ metadata = bundle.get("metadata", {})
 app = FastAPI(
     title="Loan Prediction Service",
     version="1.0.0",
-    description="Inference API for Goldman loan orchestration prototype.",
+    description="Inference API for OnboardIQ loan orchestration prototype.",
 )
 
 

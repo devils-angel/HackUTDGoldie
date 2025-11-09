@@ -56,7 +56,7 @@ export default function PendingRequests() {
   };
 
   useEffect(() => {
-    const stored = localStorage.getItem("goldmanUser");
+    const stored = localStorage.getItem("OnboardIQUser");
     if (stored) {
       try {
         setCurrentUser(JSON.parse(stored));
@@ -226,6 +226,13 @@ function DetailPanel({ request, actioning, onApprove, onReject, onClose }) {
     () => (request ? parseDocuments(request.document_list) : []),
     [request]
   );
+  const nameVerificationDoc = useMemo(
+    () =>
+      documents.find(
+        (doc) => (doc.type || "").toUpperCase() === "NAME_VERIFICATION"
+      ),
+    [documents]
+  );
 
   const dti =
     request.income && Number(request.income) > 0
@@ -364,30 +371,72 @@ function DetailPanel({ request, actioning, onApprove, onReject, onClose }) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--color-border-medium)] p-4 space-y-3">
-          <p className="text-xs uppercase text-[var(--color-sky)] tracking-[0.3em]">
-            Documents
-          </p>
-          {documents.length ? (
-            <ul className="space-y-2 text-sm">
-              {documents.map((doc, index) => (
-                <li
-                  key={`${request.application_id}-doc-${index}`}
-                  className="flex items-center justify-between rounded-xl border border-[var(--color-border-soft)] px-3 py-2"
+      <div className="rounded-2xl border border-[var(--color-border-medium)] p-4 space-y-3">
+        <p className="text-xs uppercase text-[var(--color-sky)] tracking-[0.3em]">
+          Documents
+        </p>
+        {nameVerificationDoc ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <div>
+                <p className="font-semibold">
+                  {nameVerificationDoc.title || "Name verification"}
+                </p>
+                <p className="text-xs text-[var(--color-sky)]">
+                  Status:{" "}
+                  <span className="font-semibold">
+                    {nameVerificationDoc.ocr_status || "PENDING"}
+                  </span>
+                </p>
+              </div>
+              {nameVerificationDoc.ocr_status === "MISMATCH" && (
+                <span className="text-xs px-3 py-1 rounded-full border"
+                  style={{
+                    borderColor: "var(--status-reject-border)",
+                    backgroundColor: "var(--status-reject-bg)",
+                    color: "var(--status-reject-text)"
+                  }}
                 >
-                  <span>{doc.title || doc}</span>
-                  {doc.type && (
-                    <span className="text-xs uppercase tracking-wide text-[var(--color-sky)]">
-                      {doc.type}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-[var(--color-sky)]">No documents uploaded.</p>
-          )}
-        </div>
+                  Name mismatch
+                </span>
+              )}
+              {nameVerificationDoc.ocr_status === "MATCH" && (
+                <span className="text-xs px-3 py-1 rounded-full border"
+                  style={{
+                    borderColor: "var(--status-approve-border)",
+                    backgroundColor: "var(--status-approve-bg)",
+                    color: "var(--status-approve-text)"
+                  }}
+                >
+                  Name verified
+                </span>
+              )}
+            </div>
+            {nameVerificationDoc?.url && (
+              <>
+                <div className="rounded-2xl border border-[var(--color-border-medium)] overflow-hidden bg-[var(--color-blue-softer)]">
+                  <img
+                    src={nameVerificationDoc.url}
+                    alt={nameVerificationDoc.title || "Name verification document"}
+                    className="w-full h-64 object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <a
+                  href={nameVerificationDoc.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-[var(--color-blue)] underline"
+                >
+                  Open full document
+                </a>
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--color-sky)]">No documents uploaded.</p>
+        )}
+      </div>
 
         <div className="rounded-2xl border border-[var(--color-border-medium)] p-4 space-y-3">
           <p className="text-xs uppercase text-[var(--color-sky)] tracking-[0.3em]">

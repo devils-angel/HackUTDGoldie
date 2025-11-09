@@ -27,6 +27,31 @@ const defaultDocuments = [
   "Bank_Statement"
 ];
 
+const normalizeDocumentEntry = (doc) => {
+  if (!doc) return null;
+  if (typeof doc === "string") {
+    return {
+      id: doc,
+      title: doc.replace(/_/g, " "),
+      type: "GENERAL",
+      status: "PENDING",
+      ocr_status: "PENDING"
+    };
+  }
+  const normalized = { ...doc };
+  normalized.id = normalized.id || normalized.key || uuidv4();
+  normalized.title =
+    normalized.title ||
+    normalized.label ||
+    normalized.type ||
+    (normalized.key ? normalized.key.split("/").pop() : "Document");
+  normalized.type = normalized.type || "GENERAL";
+  normalized.status = (normalized.status || "PENDING").toUpperCase();
+  normalized.ocr_status = (normalized.ocr_status || "PENDING").toUpperCase();
+  normalized.uploaded_at = normalized.uploaded_at || new Date().toISOString();
+  return normalized;
+};
+
 const formatIdDate = (date) =>
   `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(
     date.getDate()
@@ -56,7 +81,10 @@ export const mapLoanRow = (row) => {
 
   if (mapped.document_list) {
     try {
-      mapped.document_list = JSON.parse(mapped.document_list);
+      const parsed = JSON.parse(mapped.document_list);
+      mapped.document_list = Array.isArray(parsed)
+        ? parsed.map((entry) => normalizeDocumentEntry(entry)).filter(Boolean)
+        : [];
     } catch {
       mapped.document_list = [];
     }
@@ -84,10 +112,13 @@ export const createLoanApplication = async (payload) => {
     payload.application_id ||
     `LOAN-${formatIdDate(now)}-${uuidv4().slice(0, 8).toUpperCase()}`;
 
-  const documents =
+  const documentsRaw =
     payload.documents && payload.documents.length
       ? payload.documents
       : defaultDocuments;
+  const documents = documentsRaw
+    .map((item) => normalizeDocumentEntry(item))
+    .filter(Boolean);
 
   const { rows } = await query(
     `
@@ -199,6 +230,90 @@ export const resetApplicationStatuses = async (applicationId) => {
   );
 
   return getLoanApplicationByApplicationId(applicationId);
+};
+
+export const appendDocumentToApplication = async (applicationId, document) => {
+  const normalized = normalizeDocumentEntry(document);
+  if (!normalized) {
+    throw new Error("Invalid document payload");
+  }
+
+  const row = await getLoanApplicationRow(applicationId);
+  if (!row) {
+    throw new Error("Application not found");
+  }
+
+  let existing = [];
+  if (row.document_list) {
+    try {
+      const parsed = JSON.parse(row.document_list);
+      existing = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      existing = [];
+    }
+  }
+  existing.push(normalized);
+
+  const { rows } = await query(
+    `
+    UPDATE loan_applications
+    SET document_list = $2,
+        documents_uploaded = TRUE,
+        updated_at = NOW()
+    WHERE application_id = $1
+    RETURNING *
+  `,
+    [applicationId, JSON.stringify(existing)]
+  );
+
+  return mapLoanRow(rows[0]);
+};
+
+export const updateDocumentOcrStatus = async (
+  applicationId,
+  storageKey,
+  updates = {}
+) => {
+  const row = await getLoanApplicationRow(applicationId);
+  if (!row) throw new Error("Application not found");
+
+  let documents = [];
+  if (row.document_list) {
+    try {
+      const parsed = JSON.parse(row.document_list);
+      documents = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      documents = [];
+    }
+  }
+
+  let updated = false;
+  const nextDocuments = documents.map((doc) => {
+    if (doc.storage_key === storageKey) {
+      updated = true;
+      return {
+        ...doc,
+        ...updates,
+        ocr_status: (updates.ocr_status || doc.ocr_status || "PENDING").toUpperCase()
+      };
+    }
+    return doc;
+  });
+
+  if (!updated) return mapLoanRow(row);
+
+  const { rows } = await query(
+    `
+    UPDATE loan_applications
+    SET document_list = $2,
+        updated_at = NOW()
+    WHERE application_id = $1
+    RETURNING *
+  `,
+    [applicationId, JSON.stringify(nextDocuments)]
+  );
+
+  return mapLoanRow(rows[0]);
 };
 
 export const updateLoanFinalStatus = async (id, finalStatus) => {

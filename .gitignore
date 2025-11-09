@@ -20,4 +20,5 @@ train.csv
 
 # Env / secrets
 .env
+.env.example
 .env.*

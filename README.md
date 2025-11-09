@@ -3,7 +3,7 @@
 This repo contains:
 
 - **Node.js backend** (Express + PostgreSQL) with JWT auth, loan workflow, notifications, bank accounts, and model insights.
-- **React/Vite frontend** styled with Goldman colors.
+- **React/Vite frontend** styled with OnboardIQ colors.
 - **ML toolkit** (`ml/train_model.py`, `ml/model_service.py`) to train/deploy the loan-prediction model used by the backend.
 
 Below are the steps to run every layer locally.
@@ -91,7 +91,7 @@ Vite will launch at `http://localhost:5173`. The UI calls the backend (default b
 ## 9. Login/Register flow
 
 1. Visit `http://localhost:5173/register` and create a user (Admin/Vendor/Client).
-2. The frontend stores `goldmanUser` + `goldmanToken` in `localStorage`.
+2. The frontend stores `OnboardIQUser` + `OnboardIQToken` in `localStorage`.
 3. All subsequent API requests carry the JWT automatically.
 
 ## 10. Loan submission walkthrough

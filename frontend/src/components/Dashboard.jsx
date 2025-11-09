@@ -94,7 +94,7 @@ export default function Dashboard() {
       const doc = new jsPDF("p", "pt");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(18);
-      doc.text("Goldman Loan Dashboard", 40, 50);
+      doc.text("OnboardIQ Loan Dashboard", 40, 50);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
@@ -191,7 +191,7 @@ export default function Dashboard() {
       }
 
       doc.save(
-        `goldman-loan-dashboard-${new Date().toISOString().slice(0, 10)}.pdf`
+        `OnboardIQ-loan-dashboard-${new Date().toISOString().slice(0, 10)}.pdf`
       );
     } catch (err) {
       console.error("Failed to export report", err);
@@ -206,7 +206,7 @@ export default function Dashboard() {
       <div className="flex-1 px-6 py-10 md:px-10 space-y-10">
         <header className="space-y-3">
           <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
-            Goldman Intelligence
+            OnboardIQ Intelligence
           </p>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>

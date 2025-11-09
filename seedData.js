@@ -57,7 +57,7 @@ export const seedBankAccounts = async ({ silent = false } = {}) => {
     {
       owner_email: "cleoclient@example.com",
       account_number: "9876543210",
-      bank_name: "Goldman Savings",
+      bank_name: "OnboardIQ Savings",
       account_type: "SAVINGS",
       purpose: "Personal Use",
       legal_name: "Cleo Client",
