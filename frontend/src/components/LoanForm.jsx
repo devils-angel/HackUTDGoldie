@@ -20,7 +20,7 @@ export default function LoanForm() {
   const [error, setError] = useState(null);
 
   const REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASIA"];
-  
+
   const LOAN_PURPOSES = [
     "Home Purchase",
     "Business Expansion",
@@ -47,9 +47,8 @@ export default function LoanForm() {
     setResult(null);
 
     try {
-      // API endpoint - keep in sync with backend port
       const API_BASE_URL = "http://localhost:5002";
-      
+
       const response = await axios.post(
         `${API_BASE_URL}/loan-application/submit`,
         {
@@ -60,7 +59,7 @@ export default function LoanForm() {
           country: formData.country,
           income: parseFloat(formData.income),
           debt: parseFloat(formData.debt),
-          credit_score: parseInt(formData.credit_score),
+          credit_score: parseInt(formData.credit_score, 10),
           loan_amount: parseFloat(formData.loan_amount),
           loan_purpose: formData.loan_purpose,
           documents_uploaded: true,
@@ -71,105 +70,103 @@ export default function LoanForm() {
     } catch (err) {
       console.error("Error applying for loan:", err);
       setError(
-        err.response?.data?.error || 
-        err.message || 
-        "Something went wrong. Please try again."
+        err.response?.data?.error ??
+          err.message ??
+          "Something went wrong. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              Loan Application
-            </h2>
-            <p className="text-gray-600">
-              Complete the form below to check your loan eligibility
-            </p>
-          </div>
+  const inputClasses =
+    "w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white placeholder:text-[#7A82AE] focus:border-[#2178C4] focus:ring-2 focus:ring-[#2178C4]/30 outline-none transition";
+  const selectClasses = `${inputClasses} appearance-none pr-10`;
+  const labelClasses = "block text-sm font-medium text-[#C3CDDA] mb-2";
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Personal Information Section */}
-            <div className="border-b pb-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
-                Personal Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  return (
+    <div className="min-h-screen bg-[#101327] text-white py-12 px-4">
+      <div className="max-w-5xl mx-auto space-y-10">
+        <header className="text-center space-y-3">
+          <p className="text-sm uppercase tracking-[0.4em] text-[#A5B8D0]">
+            Goldman Credit Desk
+          </p>
+          <h2 className="text-4xl md:text-5xl font-semibold leading-tight">
+            Structure a new loan application with confidence.
+          </h2>
+          <p className="text-[#C3CDDA] max-w-2xl mx-auto">
+            Provide the borrower profile and our underwriting engine will trigger
+            automated KYC, compliance, and eligibility checks instantly.
+          </p>
+        </header>
+
+        <div className="bg-[#1B1F35] rounded-3xl border border-white/5 shadow-2xl p-8 space-y-10">
+          <form onSubmit={handleSubmit} className="space-y-10">
+            {/* Personal Information */}
+            <section className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold">Personal Information</h3>
+                <p className="text-sm text-[#A5B8D0]">
+                  Borrower details required for identity verification.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
-                  </label>
+                  <label className={labelClasses}>Full Name *</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    required
                     placeholder="John Doe"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    className={inputClasses}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email *
-                  </label>
+                  <label className={labelClasses}>Email *</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    required
                     placeholder="john.doe@example.com"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    className={inputClasses}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
+                  <label className={labelClasses}>Phone Number *</label>
                   <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    required
                     placeholder="+1234567890"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    className={inputClasses}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Country *
-                  </label>
+                  <label className={labelClasses}>Country *</label>
                   <input
                     type="text"
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
-                    required
                     placeholder="United States"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    className={inputClasses}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Region *
-                  </label>
+                  <label className={labelClasses}>Region *</label>
                   <select
                     name="region"
                     value={formData.region}
                     onChange={handleChange}
                     required
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={selectClasses}
                   >
                     {REGIONS.map((region) => (
                       <option key={region} value={region}>
@@ -179,99 +176,92 @@ export default function LoanForm() {
                   </select>
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Financial Information Section */}
-            <div className="border-b pb-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
-                Financial Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Financial Information */}
+            <section className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold">Financial Snapshot</h3>
+                <p className="text-sm text-[#A5B8D0]">
+                  Used to calculate debt-to-income and exposure ratios.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Annual Income ($) *
-                  </label>
+                  <label className={labelClasses}>Annual Income ($) *</label>
                   <input
                     type="number"
                     name="income"
                     value={formData.income}
                     onChange={handleChange}
-                    required
+                    placeholder="75000"
                     min="0"
                     step="0.01"
-                    placeholder="75000"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    className={inputClasses}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Total Debt ($) *
-                  </label>
+                  <label className={labelClasses}>Total Debt ($) *</label>
                   <input
                     type="number"
                     name="debt"
                     value={formData.debt}
                     onChange={handleChange}
-                    required
+                    placeholder="25000"
                     min="0"
                     step="0.01"
-                    placeholder="25000"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    className={inputClasses}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Credit Score *
-                  </label>
+                  <label className={labelClasses}>Credit Score *</label>
                   <input
                     type="number"
                     name="credit_score"
                     value={formData.credit_score}
                     onChange={handleChange}
-                    required
+                    placeholder="720"
                     min="300"
                     max="850"
-                    placeholder="720"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    className={inputClasses}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Loan Amount ($) *
-                  </label>
+                  <label className={labelClasses}>Loan Amount ($) *</label>
                   <input
                     type="number"
                     name="loan_amount"
                     value={formData.loan_amount}
                     onChange={handleChange}
-                    required
+                    placeholder="250000"
                     min="0"
                     step="0.01"
-                    placeholder="250000"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                    className={inputClasses}
                   />
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Loan Details Section */}
-            <div className="pb-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
-                Loan Details
-              </h3>
+            {/* Loan Details */}
+            <section className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Loan Purpose *
-                </label>
+                <h3 className="text-xl font-semibold">Loan Structure</h3>
+                <p className="text-sm text-[#A5B8D0]">
+                  Select the intended capital deployment.
+                </p>
+              </div>
+              <div>
+                <label className={labelClasses}>Purpose *</label>
                 <select
                   name="loan_purpose"
                   value={formData.loan_purpose}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={selectClasses}
                 >
                   {LOAN_PURPOSES.map((purpose) => (
                     <option key={purpose} value={purpose}>
@@ -280,18 +270,17 @@ export default function LoanForm() {
                   ))}
                 </select>
               </div>
-            </div>
+            </section>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg py-3 font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              className="w-full bg-[#2178C4] text-white rounded-2xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <span className="flex items-center justify-center">
+                <span className="flex items-center justify-center gap-3">
                   <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    className="animate-spin h-5 w-5 text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -303,154 +292,83 @@ export default function LoanForm() {
                       r="10"
                       stroke="currentColor"
                       strokeWidth="4"
-                    ></circle>
+                    />
                     <path
                       className="opacity-75"
                       fill="currentColor"
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
+                    />
                   </svg>
-                  Processing Application...
+                  Processing application…
                 </span>
               ) : (
-                "Submit Application"
+                "Submit application"
               )}
             </button>
           </form>
 
-          {/* Error Message */}
           {error && (
-            <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-red-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Error</h3>
-                  <p className="mt-1 text-sm text-red-700">{error}</p>
-                </div>
-              </div>
+            <div className="p-5 rounded-2xl border border-[#FF6B6B]/30 bg-[#3B1F2B] text-[#FFC9C9]">
+              <p className="font-semibold flex items-center gap-2 text-[#FF8FA3]">
+                <span className="text-xl">⚠</span> Submission error
+              </p>
+              <p className="mt-2 text-sm">{error}</p>
             </div>
           )}
 
-          {/* Success Result */}
           {result && result.application && (
-            <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-lg shadow-md">
-              <div className="mb-4">
-                <h3 className="text-xl font-bold text-green-800 flex items-center">
-                  <svg
-                    className="w-6 h-6 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Application Submitted Successfully!
-                </h3>
-              </div>
-
-              <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-gray-600 font-medium">Application ID:</p>
-                    <p className="text-gray-900 font-mono">
-                      {result.application.application_id}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600 font-medium">Status:</p>
-                    <p
-                      className={`font-bold ${
-                        result.application.final_status === "APPROVED"
-                          ? "text-green-600"
-                          : result.application.final_status === "REJECTED"
-                          ? "text-red-600"
-                          : "text-yellow-600"
-                      }`}
-                    >
-                      {result.application.final_status}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-green-200">
-                  <p className="font-semibold text-gray-700 mb-2">
-                    Verification Results:
+            <div className="p-6 rounded-3xl border border-[#4ADE80]/30 bg-[#0F241B] space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.3em] text-[#64F6A3]">
+                    Application submitted
                   </p>
-                  <div className="space-y-2 ml-4">
-                    <div className="flex items-center">
-                      <span
-                        className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                          result.application.kyc_status === "APPROVED"
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      ></span>
-                      <span>
-                        KYC Verification: {result.application.kyc_status}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span
-                        className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                          result.application.compliance_status === "APPROVED"
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      ></span>
-                      <span>
-                        Compliance Check:{" "}
-                        {result.application.compliance_status}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span
-                        className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                          result.application.eligibility_status === "APPROVED"
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      ></span>
-                      <span>
-                        Eligibility Assessment:{" "}
-                        {result.application.eligibility_status}
-                      </span>
-                    </div>
-                  </div>
+                  <h3 className="text-2xl font-semibold mt-1">
+                    {result.application.application_id}
+                  </h3>
                 </div>
-
-                {result.application.dti_ratio && (
-                  <div className="pt-4 border-t border-green-200">
-                    <p className="text-gray-600">
-                      <strong>Debt-to-Income Ratio:</strong>{" "}
-                      {(result.application.dti_ratio * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                )}
-
-                {result.application.final_remarks && (
-                  <div className="pt-4 border-t border-green-200">
-                    <p className="text-gray-600 italic">
-                      {result.application.final_remarks}
-                    </p>
-                  </div>
-                )}
+                <span
+                  className={`inline-flex items-center justify-center rounded-full px-4 py-1 text-sm font-semibold ${
+                    result.application.final_status === "APPROVED"
+                      ? "bg-[#143024] text-[#64F6A3]"
+                      : result.application.final_status === "REJECTED"
+                      ? "bg-[#3B1F2B] text-[#FF8FA3]"
+                      : "bg-[#2B2F45] text-[#F0BB5A]"
+                  }`}
+                >
+                  {result.application.final_status}
+                </span>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="space-y-1">
+                  <p className="text-[#A5B8D0]">KYC</p>
+                  <p>{result.application.kyc_status}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[#A5B8D0]">Compliance</p>
+                  <p>{result.application.compliance_status}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[#A5B8D0]">Eligibility</p>
+                  <p>{result.application.eligibility_status}</p>
+                </div>
+              </div>
+
+              {result.application.dti_ratio && (
+                <p className="text-sm text-[#C3CDDA]">
+                  Debt-to-Income Ratio:{" "}
+                  <span className="font-semibold text-white">
+                    {(result.application.dti_ratio * 100).toFixed(1)}%
+                  </span>
+                </p>
+              )}
+
+              {result.application.final_remarks && (
+                <p className="text-sm text-[#C3CDDA] italic">
+                  “{result.application.final_remarks}”
+                </p>
+              )}
             </div>
           )}
         </div>

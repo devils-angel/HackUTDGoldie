@@ -16,7 +16,7 @@ RUN apk add --no-cache dos2unix
 RUN dos2unix start.sh
 RUN chmod +x start.sh
 #Exposing Flask port for local development
-EXPOSE 5000
+EXPOSE 5002
 
 # Run the Flask app
 #CMD ["python", "app.py"]
