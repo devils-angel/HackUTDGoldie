@@ -40,6 +40,7 @@ export default function BankAccounts() {
   const [form, setForm] = useState(initialFormState);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
   const loadAccounts = async (profile) => {
     if (!profile?.email) return;
@@ -79,6 +80,11 @@ export default function BankAccounts() {
     setError(null);
   };
 
+  const totalBalance = accounts.reduce(
+    (sum, account) => sum + Number(account.balance || 0),
+    0
+  );
+
   return (
     <div className="min-h-screen lg:flex bg-[#101327] text-white">
       <Sidebar />
@@ -94,14 +100,64 @@ export default function BankAccounts() {
                 Linked accounts used for loan disbursement and repayment.
               </p>
             </div>
-            <button
-              onClick={() => user && loadAccounts(user)}
-              className="bg-[#2178C4] text-white px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition"
-            >
-              Refresh
-            </button>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={() => user && loadAccounts(user)}
+                className="bg-white/5 border border-white/10 text-white px-5 py-3 rounded-2xl font-semibold hover:bg-white/10 transition"
+              >
+                Refresh
+              </button>
+              <button
+                onClick={() => setShowForm((prev) => !prev)}
+                className="bg-[#2178C4] text-white px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition"
+              >
+                {showForm ? "Close form" : "Add account"}
+              </button>
+            </div>
           </div>
         </header>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#1F2A4A] to-[#12152D] p-6">
+            <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+              Total Balance
+            </p>
+            <h3 className="text-3xl font-semibold mt-2">
+              ${totalBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </h3>
+            <p className="text-xs text-[#7A82AE] mt-1">
+              Across {accounts.length || "no"} accounts
+            </p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-[#1B1F35] p-6">
+            <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+              Linked Accounts
+            </p>
+            <h3 className="text-3xl font-semibold mt-2">{accounts.length}</h3>
+            <p className="text-xs text-[#7A82AE] mt-1">
+              Client workspace can attach one per loan request.
+            </p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-[#10163A] p-6">
+            <p className="text-sm text-[#A5B8D0] uppercase tracking-[0.3em]">
+              Primary Disbursement
+            </p>
+            {accounts[0] ? (
+              <>
+                <h3 className="text-xl font-semibold mt-2">
+                  {accounts[0].bank_name}
+                </h3>
+                <p className="text-sm text-[#C3CDDA]">
+                  {accounts[0].account_type} • #{accounts[0].account_number}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-[#C3CDDA] mt-2">
+                No accounts yet. Add one to unlock instant approvals.
+              </p>
+            )}
+          </div>
+        </section>
 
         {error && (
           <div className="p-4 rounded-2xl border border-red-400/40 bg-red-900/30 text-red-100">
@@ -109,6 +165,7 @@ export default function BankAccounts() {
           </div>
         )}
 
+        {showForm && (
         <section className="bg-[#1B1F35] rounded-3xl border border-white/5 p-6 space-y-6">
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold">Add Account</h2>
@@ -144,6 +201,7 @@ export default function BankAccounts() {
                   email: user.email,
                   legal_name: user.name || ""
                 }));
+                setShowForm(false);
                 loadAccounts(user);
               } catch (err) {
                 console.error("Failed to add account", err);
@@ -164,15 +222,6 @@ export default function BankAccounts() {
                   required
                   className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-[#A5B8D0]">
-                  Account Number
-                </label>
-                <p className="text-sm text-[#C3CDDA] bg-[#15193A] border border-dashed border-white/10 rounded-2xl px-4 py-3">
-                  We generate a secure 12-digit account number automatically once you
-                  submit this application.
-                </p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm text-[#A5B8D0]">
@@ -302,9 +351,9 @@ export default function BankAccounts() {
                   <input
                     type="email"
                     value={form.email}
-                    onChange={(e) => handleFormChange("email", e.target.value)}
-                    required
-                    className="w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white outline-none"
+                    readOnly
+                    disabled
+                    className="w-full rounded-2xl border border-white/10 bg-[#1F2240] px-4 py-3 text-white outline-none opacity-70 cursor-not-allowed"
                   />
                 </div>
                 <div className="space-y-2">
@@ -389,21 +438,33 @@ export default function BankAccounts() {
             </div>
           </form>
         </section>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#2178C4]" />
           </div>
         ) : accounts.length === 0 ? (
-          <div className="p-6 rounded-3xl border border-white/10 bg-[#1B1F35] text-center text-[#C3CDDA]">
-            No accounts found. Contact support to link your first account.
+          <div className="p-8 rounded-3xl border border-dashed border-[#2178C4]/40 bg-[#14183A] text-center space-y-3">
+            <p className="text-lg font-semibold text-white">
+              No accounts linked yet
+            </p>
+            <p className="text-sm text-[#C3CDDA] max-w-lg mx-auto">
+              Add a checking, savings, student, or business account to speed up disbursement and repayment workflows.
+            </p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-[#2178C4] text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[#2178C4]/30 hover:bg-[#1b63a0] transition"
+            >
+              Add your first account
+            </button>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {accounts.map((account) => (
               <div
                 key={account.id}
-                className="bg-[#1B1F35] border border-white/10 rounded-3xl p-6 space-y-2"
+                className="bg-[#1B1F35] border border-white/10 rounded-3xl p-6 space-y-3"
               >
                 <p className="text-sm uppercase tracking-[0.3em] text-[#A5B8D0]">
                   {account.bank_name}
@@ -411,12 +472,19 @@ export default function BankAccounts() {
                 <h3 className="text-2xl font-semibold">
                   {account.account_type}
                 </h3>
-                <p className="text-sm text-[#C3CDDA]">
-                  Account #{account.account_number}
+                <p className="text-sm text-[#C3CDDA] flex items-center justify-between gap-3">
+                  <span>Account #{account.account_number}</span>
+                  <span className="text-xs px-3 py-1 rounded-full border border-white/10 bg-white/5">
+                    {account.purpose?.replace(/_/g, " ") || "Purpose N/A"}
+                  </span>
                 </p>
-                <p className="text-sm text-[#C3CDDA]">
-                  Balance: ${Number(account.balance).toLocaleString()}
-                </p>
+                <div className="space-y-1 text-sm text-[#C3CDDA]">
+                  <p>
+                    Balance: ${Number(account.balance).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </p>
+                  {account.legal_name && <p>Owner: {account.legal_name}</p>}
+                  {account.phone && <p>Phone: {account.phone}</p>}
+                </div>
                 <p className="text-xs text-[#A5B8D0]">
                   Added on {new Date(account.created_at).toLocaleDateString()}
                 </p>

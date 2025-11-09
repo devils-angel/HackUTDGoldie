@@ -153,6 +153,7 @@ export default function LoanForm() {
 
   const inputClasses =
     "w-full rounded-2xl border border-white/10 bg-[#15193A] px-4 py-3 text-white placeholder:text-[#7A82AE] focus:border-[#2178C4] focus:ring-2 focus:ring-[#2178C4]/30 outline-none transition";
+  const readOnlyInputClasses = `${inputClasses} bg-[#1F2240] text-white/80 cursor-not-allowed focus:border-white/10 focus:ring-0`;
   const selectClasses = `${inputClasses} appearance-none pr-10`;
   const labelClasses = "block text-sm font-medium text-[#C3CDDA] mb-2";
 
@@ -190,10 +191,10 @@ export default function LoanForm() {
                       type="text"
                       name="name"
                       value={formData.name}
-                      onChange={handleChange}
                       placeholder="John Doe"
                       required
-                      className={inputClasses}
+                      readOnly
+                      className={readOnlyInputClasses}
                     />
                   </div>
                   <div>
@@ -202,10 +203,10 @@ export default function LoanForm() {
                       type="email"
                       name="email"
                       value={formData.email}
-                      onChange={handleChange}
                       placeholder="john.doe@example.com"
                       required
-                      className={inputClasses}
+                      readOnly
+                      className={readOnlyInputClasses}
                     />
                   </div>
                   <div>
