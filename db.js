@@ -109,6 +109,19 @@ const runMigrations = async () => {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      recipient_email TEXT NOT NULL,
+      role TEXT NOT NULL,
+      application_id TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'UNREAD' CHECK (status IN ('UNREAD','READ')),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
 };
 
 await runMigrations();

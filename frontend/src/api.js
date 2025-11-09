@@ -36,4 +36,8 @@ export const fetchDashboardVerificationStats = () =>
   API.get("/dashboard/verification-stats");
 export const fetchDashboardFinancialMetrics = () =>
   API.get("/dashboard/financial-metrics");
+export const fetchNotifications = (params = {}) =>
+  API.get("/notifications", { params });
+export const markNotificationsRead = (ids) =>
+  API.post("/notifications/read", { ids });
 // export const applyForLoan = (data) => API.post("/loan", data);

@@ -5,14 +5,17 @@ const roleLinks = {
     { label: "Dashboard", to: "/dashboard" },
     { label: "Pending Requests", to: "/pending" },
     { label: "Approval Log", to: "/logs" },
+    { label: "Notifications", to: "/notifications" },
     { label: "Sign Out", to: "/login" },
   ],
   VENDOR: [
     { label: "Pending Requests", to: "/pending" },
+    { label: "Notifications", to: "/notifications" },
     { label: "Sign Out", to: "/login" },
   ],
   CLIENT: [
     { label: "Loan Workspace", to: "/loan" },
+    { label: "Notifications", to: "/notifications" },
     { label: "Sign Out", to: "/login" },
   ],
 };

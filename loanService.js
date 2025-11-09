@@ -255,3 +255,49 @@ export const createApprovalLog = async ({
     [applicationId, stage, action, actorEmail, actorRole, notes]
   );
 };
+
+export const createNotification = async ({
+  recipientEmail,
+  role,
+  applicationId,
+  message
+}) => {
+  await query(
+    `
+    INSERT INTO notifications
+      (recipient_email, role, application_id, message)
+    VALUES ($1, $2, $3, $4)
+  `,
+    [recipientEmail, role.toUpperCase(), applicationId, message]
+  );
+};
+
+export const fetchNotificationsForRole = async ({ email, role }) => {
+  const { rows } = await query(
+    `
+    SELECT * FROM notifications
+    WHERE recipient_email = $1
+      AND role = $2
+    ORDER BY created_at DESC
+  `,
+    [email, role.toUpperCase()]
+  );
+  return rows;
+};
+
+export const markNotificationsRead = async ({ ids = [] }) => {
+  if (!ids.length) return;
+  const placeholders = ids.map((_, idx) => `$${idx + 1}`).join(",");
+  await query(
+    `UPDATE notifications SET status = 'READ', updated_at = NOW() WHERE id IN (${placeholders})`,
+    ids
+  );
+};
+
+export const fetchUsersByRole = async (role) => {
+  const { rows } = await query(
+    `SELECT email FROM users WHERE role = $1`,
+    [role.toUpperCase()]
+  );
+  return rows.map((row) => row.email);
+};

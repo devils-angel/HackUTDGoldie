@@ -5,6 +5,7 @@ import Dashboard from "./components/Dashboard";
 import LoanForm from "./components/LoanForm";
 import PendingRequests from "./components/PendingRequests";
 import ApprovalLogs from "./components/ApprovalLogs";
+import Notifications from "./components/Notifications";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/loan" element={<LoanForm />} />
         <Route path="/pending" element={<PendingRequests />} />
         <Route path="/logs" element={<ApprovalLogs />} />
+        <Route path="/notifications" element={<Notifications />} />
       </Routes>
     </BrowserRouter>
   );

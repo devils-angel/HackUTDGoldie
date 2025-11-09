@@ -11,7 +11,11 @@ import {
   updateLoanApplicationById,
   updateLoanFinalStatus,
   mapLoanRow,
-  createApprovalLog
+  createApprovalLog,
+  createNotification,
+  fetchNotificationsForRole,
+  markNotificationsRead,
+  fetchUsersByRole
 } from "./loanService.js";
 import { seedStocks } from "./seedData.js";
 import { seedLoanApplications } from "./seedLoanData.js";
@@ -208,6 +212,18 @@ app.post(
 
     const application = await createLoanApplication(data);
 
+    const vendorEmails = await fetchUsersByRole("VENDOR");
+    await Promise.all(
+      vendorEmails.map((email) =>
+        createNotification({
+          recipientEmail: email,
+          role: "VENDOR",
+          applicationId: application.application_id,
+          message: `New loan from ${application.name} awaiting review`
+        })
+      )
+    );
+
     return res.status(201).json({
       message: "Loan application submitted and pending manual review",
       application: {
@@ -309,6 +325,13 @@ app.post(
       notes: req.body?.notes || null
     });
 
+    await createNotification({
+      recipientEmail: application.email,
+      role: "CLIENT",
+      applicationId,
+      message: `${nextStage.label} stage approved for ${applicationId}`
+    });
+
     let message = `${nextStage.label} stage approved`;
 
     if (nextStage.key === "eligibility_status") {
@@ -325,6 +348,12 @@ app.post(
         actorEmail: actor.email,
         actorRole: actor.role,
         notes: "Eligibility approved manually"
+      });
+      await createNotification({
+        recipientEmail: application.email,
+        role: "CLIENT",
+        applicationId,
+        message: `Your loan ${applicationId} was approved.`
       });
       message = "Application fully approved";
     }
@@ -372,6 +401,12 @@ app.post(
       actorEmail: actor.email,
       actorRole: actor.role,
       notes: finalRemarks
+    });
+    await createNotification({
+      recipientEmail: application.email,
+      role: "CLIENT",
+      applicationId,
+      message: `Your loan ${applicationId} was rejected: ${finalRemarks}`
     });
     await VerificationService.sendNotification(updated);
 
@@ -608,6 +643,27 @@ app.get(
       values
     );
     res.json({ logs: rows });
+  })
+);
+
+app.get(
+  "/notifications",
+  asyncHandler(async (req, res) => {
+    const { email, role } = req.query;
+    if (!email || !role) {
+      return res.status(400).json({ error: "Email and role are required" });
+    }
+    const notifications = await fetchNotificationsForRole({ email, role });
+    res.json({ notifications });
+  })
+);
+
+app.post(
+  "/notifications/read",
+  asyncHandler(async (req, res) => {
+    const ids = req.body?.ids || [];
+    await markNotificationsRead({ ids });
+    res.json({ success: true });
   })
 );
 
