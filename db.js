@@ -122,6 +122,68 @@ const runMigrations = async () => {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bank_accounts (
+      id SERIAL PRIMARY KEY,
+      owner_email TEXT NOT NULL,
+      account_number TEXT NOT NULL,
+      bank_name TEXT NOT NULL,
+      account_type TEXT NOT NULL,
+      purpose TEXT,
+      legal_name TEXT,
+      dob DATE,
+      ssn TEXT,
+      residential_address TEXT,
+      mailing_address TEXT,
+      email TEXT,
+      phone TEXT,
+      citizen_status TEXT,
+      employed BOOLEAN,
+      annual_income NUMERIC,
+      balance NUMERIC DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  const bankAccountColumnAdds = [
+    ["purpose", "TEXT"],
+    ["legal_name", "TEXT"],
+    ["dob", "DATE"],
+    ["ssn", "TEXT"],
+    ["residential_address", "TEXT"],
+    ["mailing_address", "TEXT"],
+    ["email", "TEXT"],
+    ["phone", "TEXT"],
+    ["citizen_status", "TEXT"],
+    ["employed", "BOOLEAN"],
+    ["annual_income", "NUMERIC"]
+  ];
+
+  for (const [column, type] of bankAccountColumnAdds) {
+    await pool.query(
+      `ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS ${column} ${type}`
+    );
+  }
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'bank_accounts_account_number_key'
+      ) THEN
+        ALTER TABLE bank_accounts
+        ADD CONSTRAINT bank_accounts_account_number_key UNIQUE (account_number);
+      END IF;
+    END $$;
+  `);
+
+  await pool.query(`
+    ALTER TABLE loan_applications
+    ADD COLUMN IF NOT EXISTS bank_account_id INTEGER REFERENCES bank_accounts(id)
+  `);
 };
 
 await runMigrations();

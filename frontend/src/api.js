@@ -40,4 +40,8 @@ export const fetchNotifications = (params = {}) =>
   API.get("/notifications", { params });
 export const markNotificationsRead = (ids) =>
   API.post("/notifications/read", { ids });
+export const fetchBankAccounts = (email) =>
+  API.get("/bank-accounts", { params: { email } });
+export const addBankAccount = (payload) =>
+  API.post("/bank-accounts", payload);
 // export const applyForLoan = (data) => API.post("/loan", data);

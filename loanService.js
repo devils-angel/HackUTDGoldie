@@ -105,9 +105,10 @@ export const createLoanApplication = async (payload) => {
       loan_purpose,
       documents_uploaded,
       document_list,
-      review_status
+      review_status,
+      bank_account_id
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
     )
     RETURNING *
   `,
@@ -125,7 +126,8 @@ export const createLoanApplication = async (payload) => {
       payload.loan_purpose || "",
       payload.documents_uploaded !== false,
       JSON.stringify(documents),
-      (payload.review_status || "PENDING").toUpperCase()
+      (payload.review_status || "PENDING").toUpperCase(),
+      payload.bank_account_id || null
     ]
   );
 
@@ -300,4 +302,110 @@ export const fetchUsersByRole = async (role) => {
     [role.toUpperCase()]
   );
   return rows.map((row) => row.email);
+};
+
+export const fetchBankAccountsByEmail = async (email) => {
+  const { rows } = await query(
+    `SELECT * FROM bank_accounts WHERE owner_email = $1 ORDER BY created_at DESC`,
+    [email]
+  );
+  return rows;
+};
+
+export const getBankAccountById = async (id) => {
+  const { rows } = await query(
+    `SELECT * FROM bank_accounts WHERE id = $1`,
+    [id]
+  );
+  return rows[0] || null;
+};
+
+const generateCandidateAccountNumber = () =>
+  String(
+    Math.floor(100000000000 + Math.random() * 900000000000) // 12-digit number
+  );
+
+const generateUniqueAccountNumber = async () => {
+  for (let attempts = 0; attempts < 10; attempts += 1) {
+    const candidate = generateCandidateAccountNumber();
+    const { rowCount } = await query(
+      `SELECT 1 FROM bank_accounts WHERE account_number = $1 LIMIT 1`,
+      [candidate]
+    );
+    if (!rowCount) {
+      return candidate;
+    }
+  }
+  throw new Error("Unable to generate unique account number");
+};
+
+export const createBankAccount = async (account) => {
+  const {
+    owner_email,
+    account_number,
+    bank_name,
+    account_type,
+    purpose,
+    legal_name,
+    dob,
+    ssn,
+    residential_address,
+    mailing_address,
+    email,
+    phone,
+    citizen_status,
+    employed,
+    annual_income,
+    balance
+  } = account;
+
+  const normalizedAccountNumber =
+    (account_number && String(account_number).trim()) ||
+    (await generateUniqueAccountNumber());
+
+  const { rows } = await query(
+    `
+    INSERT INTO bank_accounts (
+      owner_email,
+      account_number,
+      bank_name,
+      account_type,
+      purpose,
+      legal_name,
+      dob,
+      ssn,
+      residential_address,
+      mailing_address,
+      email,
+      phone,
+      citizen_status,
+      employed,
+      annual_income,
+      balance
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+    )
+    RETURNING *
+  `,
+    [
+      owner_email,
+      normalizedAccountNumber,
+      bank_name,
+      account_type,
+      purpose,
+      legal_name,
+      dob,
+      ssn,
+      residential_address,
+      mailing_address,
+      email,
+      phone,
+      citizen_status,
+      employed,
+      annual_income,
+      balance
+    ]
+  );
+
+  return rows[0];
 };

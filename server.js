@@ -15,7 +15,10 @@ import {
   createNotification,
   fetchNotificationsForRole,
   markNotificationsRead,
-  fetchUsersByRole
+  fetchUsersByRole,
+  fetchBankAccountsByEmail,
+  createBankAccount,
+  getBankAccountById
 } from "./loanService.js";
 import { seedStocks } from "./seedData.js";
 import { seedLoanApplications } from "./seedLoanData.js";
@@ -210,6 +213,16 @@ app.post(
         .json({ error: "Invalid numeric values", invalid: invalidNumeric });
     }
 
+    if (data.bank_account_id) {
+      const account = await getBankAccountById(Number(data.bank_account_id));
+      if (!account || account.owner_email !== data.email) {
+        return res
+          .status(400)
+          .json({ error: "Invalid bank account selected for this user" });
+      }
+      data.bank_account_id = Number(data.bank_account_id);
+    }
+
     const application = await createLoanApplication(data);
 
     const vendorEmails = await fetchUsersByRole("VENDOR");
@@ -275,6 +288,79 @@ app.get(
     return res.json({
       applications: rows.map(mapLoanRow)
     });
+  })
+);
+
+app.get(
+  "/bank-accounts",
+  asyncHandler(async (req, res) => {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const accounts = await fetchBankAccountsByEmail(email);
+    res.json({ accounts });
+  })
+);
+
+app.post(
+  "/bank-accounts",
+  asyncHandler(async (req, res) => {
+    const {
+      owner_email,
+      bank_name,
+      account_type,
+      purpose,
+      legal_name,
+      dob,
+      ssn,
+      residential_address,
+      mailing_address,
+      email,
+      phone,
+      citizen_status,
+      employed,
+      annual_income,
+      balance
+    } = req.body || {};
+
+    if (
+      !owner_email ||
+      !bank_name ||
+      !account_type ||
+      !purpose ||
+      !legal_name ||
+      !dob ||
+      !ssn ||
+      !residential_address ||
+      !email ||
+      !phone ||
+      !citizen_status ||
+      typeof employed === "undefined" ||
+      annual_income == null
+    ) {
+      return res.status(400).json({ error: "Missing account fields" });
+    }
+
+    const account = await createBankAccount({
+      owner_email,
+      bank_name,
+      account_type,
+      purpose,
+      legal_name,
+      dob,
+      ssn,
+      residential_address,
+      mailing_address,
+      email,
+      phone,
+      citizen_status,
+      employed,
+      annual_income,
+      balance: Number(balance) || 0
+    });
+
+    res.status(201).json({ message: "Account added successfully", account });
   })
 );
 

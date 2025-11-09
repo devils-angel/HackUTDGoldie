@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { applyForLoan, fetchUserLoans } from "../api";
+import { applyForLoan, fetchUserLoans, fetchBankAccounts } from "../api";
 
 const REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASIA"];
 
@@ -45,6 +46,9 @@ export default function LoanForm() {
   const [requests, setRequests] = useState([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsError, setRequestsError] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [accountsError, setAccountsError] = useState(null);
+  const [selectedAccount, setSelectedAccount] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,6 +73,24 @@ export default function LoanForm() {
     }
   };
 
+  const loadAccounts = async (email) => {
+    if (!email) return;
+    setAccountsError(null);
+    try {
+      const response = await fetchBankAccounts(email);
+      const list = response.data.accounts || [];
+      setAccounts(list);
+      setSelectedAccount((prev) =>
+        prev ? prev : list.length ? String(list[0].id) : ""
+      );
+    } catch (err) {
+      console.error("Failed to load accounts", err);
+      setAccountsError(
+        err.response?.data?.error || "Unable to load bank accounts."
+      );
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -87,7 +109,8 @@ export default function LoanForm() {
         credit_score: parseInt(formData.credit_score, 10),
         loan_amount: parseFloat(formData.loan_amount),
         loan_purpose: formData.loan_purpose,
-        documents_uploaded: true
+        documents_uploaded: true,
+        bank_account_id: selectedAccount ? Number(selectedAccount) : undefined
       });
 
       setPendingInfo(response.data.application);
@@ -120,6 +143,7 @@ export default function LoanForm() {
         }));
         if (user?.email) {
           loadRequests(user.email);
+          loadAccounts(user.email);
         }
       } catch (err) {
         console.error("Failed to parse stored user", err);
@@ -224,6 +248,33 @@ export default function LoanForm() {
                       ))}
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className={labelClasses}>Linked Account</label>
+                  {accountsError ? (
+                    <p className="text-sm text-red-300">{accountsError}</p>
+                  ) : accounts.length ? (
+                    <select
+                      className={selectClasses}
+                      value={selectedAccount}
+                      onChange={(e) => setSelectedAccount(e.target.value)}
+                    >
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.bank_name} • {account.account_type} • #
+                          {account.account_number}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-[#C3CDDA]">
+                      No accounts linked.{" "}
+                      <Link to="/accounts" className="text-[#2178C4] underline">
+                        Add one
+                      </Link>{" "}
+                      to speed up disbursement.
+                    </p>
+                  )}
                 </div>
               </section>
 

@@ -6,6 +6,7 @@ import LoanForm from "./components/LoanForm";
 import PendingRequests from "./components/PendingRequests";
 import ApprovalLogs from "./components/ApprovalLogs";
 import Notifications from "./components/Notifications";
+import BankAccounts from "./components/BankAccounts";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/pending" element={<PendingRequests />} />
         <Route path="/logs" element={<ApprovalLogs />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/accounts" element={<BankAccounts />} />
       </Routes>
     </BrowserRouter>
   );

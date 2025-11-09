@@ -15,6 +15,7 @@ const roleLinks = {
   ],
   CLIENT: [
     { label: "Loan Workspace", to: "/loan" },
+    { label: "Bank Accounts", to: "/accounts" },
     { label: "Notifications", to: "/notifications" },
     { label: "Sign Out", to: "/login" },
   ],
