@@ -33,6 +33,8 @@
   --nav-active-bg: #7399c6;
   --nav-active-text: #ffffff;
   --nav-hover-bg: rgba(173, 212, 241, 0.15);
+  --color-on-blue: #ffffff;
+  --color-on-charcoal: #ffffff;
 }
 
 [data-theme="light"] {
@@ -68,6 +70,8 @@
   --nav-active-bg: #00355f;
   --nav-active-text: #ffffff;
   --nav-hover-bg: rgba(0, 53, 95, 0.08);
+  --color-on-blue: #ffffff;
+  --color-on-charcoal: #231f20;
 }
 
 body {

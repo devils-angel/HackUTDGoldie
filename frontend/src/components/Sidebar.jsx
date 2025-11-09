@@ -70,7 +70,7 @@ export default function Sidebar() {
             <h2 className="text-2xl font-semibold">Lending Suite</h2>
           </div>
           <div className="flex items-center gap-3 rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-blue)]/10 p-3">
-            <div className="h-12 w-12 rounded-2xl bg-[var(--color-blue)] flex items-center justify-center text-lg font-semibold">
+            <div className="h-12 w-12 rounded-2xl bg-[var(--color-blue)] text-[var(--color-on-blue)] flex items-center justify-center text-lg font-semibold">
               {getInitials(user?.name || "Client User")}
             </div>
             <div className="text-sm">

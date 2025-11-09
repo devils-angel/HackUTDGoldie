@@ -109,7 +109,7 @@ export default function BankAccounts() {
               </button>
               <button
                 onClick={() => setShowForm((prev) => !prev)}
-                className="bg-[var(--color-blue)] text-[var(--color-text)] px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition"
+                className="bg-[var(--color-blue)] text-[var(--color-on-blue)] px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition"
               >
                 {showForm ? "Close form" : "Add account"}
               </button>
@@ -431,7 +431,7 @@ export default function BankAccounts() {
               </div>
               <button
                 disabled={saving}
-                className="bg-[var(--color-blue)] text-[var(--color-text)] px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[var(--color-blue)] text-[var(--color-on-blue)] px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? "Saving…" : "Submit account application"}
               </button>
@@ -454,7 +454,7 @@ export default function BankAccounts() {
             </p>
             <button
               onClick={() => setShowForm(true)}
-              className="bg-[var(--color-blue)] text-[var(--color-text)] px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition"
+              className="bg-[var(--color-blue)] text-[var(--color-on-blue)] px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition"
             >
               Add your first account
             </button>

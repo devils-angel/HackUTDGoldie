@@ -96,7 +96,7 @@ export default function Notifications() {
             <button
               disabled={!selected.size}
               onClick={markRead}
-              className="px-4 py-2 rounded-2xl bg-[var(--color-blue)] shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-50"
+              className="px-4 py-2 rounded-2xl bg-[var(--color-blue)] text-[var(--color-on-blue)] shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-50"
             >
               Mark as read
             </button>

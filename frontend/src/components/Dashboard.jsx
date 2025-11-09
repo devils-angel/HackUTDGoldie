@@ -90,7 +90,7 @@ export default function Dashboard() {
                 stages.
               </p>
             </div>
-            <button className="self-start md:self-auto bg-[var(--color-blue)] text-[var(--color-text)] px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition">
+            <button className="self-start md:self-auto bg-[var(--color-blue)] text-[var(--color-on-blue)] px-5 py-3 rounded-2xl font-semibold shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition">
               Export report
             </button>
           </div>

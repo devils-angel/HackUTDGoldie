@@ -367,7 +367,7 @@ export default function LoanForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[var(--color-blue)] text-[var(--color-text)] rounded-2xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full bg-[var(--color-blue)] text-[var(--color-on-blue)] rounded-2xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-3">
@@ -408,74 +408,72 @@ export default function LoanForm() {
               </div>
             )}
 
-            {pendingInfo && (
-              <div
-                className={`p-6 rounded-3xl space-y-4 ${
+            {pendingInfo &&
+              (() => {
+                const tone = getStatusChipStyles(pendingInfo.review_status);
+                const panelBg =
                   pendingInfo.review_status === "REJECTED"
-                    ? "border border-[var(--color-charcoal)]/40 bg-[var(--color-charcoal)]"
+                    ? "var(--model-reject-panel)"
                     : pendingInfo.review_status === "APPROVED"
-                    ? "border border-[var(--color-sky)]/30 bg-[var(--color-navy)]"
-                    : "border border-[var(--color-blue)]/30 bg-[var(--color-charcoal)]"
-                }`}
-              >
-                <div className="flex flex-col gap-2">
-                  <p
-                    className={`text-sm uppercase tracking-[0.3em] ${
-                      pendingInfo.review_status === "REJECTED"
-                        ? "text-[var(--color-charcoal)]"
-                        : pendingInfo.review_status === "APPROVED"
-                        ? "text-[var(--color-sky)]"
-                        : "text-[var(--color-blue)]"
-                    }`}
+                    ? "var(--model-approve-panel)"
+                    : "var(--model-pending-panel)";
+                return (
+                  <div
+                    className="p-6 rounded-3xl space-y-4 border"
+                    style={{
+                      borderColor: tone.style.borderColor,
+                      background: panelBg
+                    }}
                   >
-                    {pendingInfo.review_status === "REJECTED"
-                      ? "Rejected"
-                      : pendingInfo.review_status === "APPROVED"
-                      ? "Fully approved"
-                      : "In manual review"}
-                  </p>
-                  <h3 className="text-2xl font-semibold">
-                    {pendingInfo.application_id}
-                  </h3>
-                  <p className="text-sm text-[var(--color-text)]">
-                    Your request is queued for an analyst. Monitor progress below.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-[var(--color-sky)]">Review status</p>
-                    {(() => {
-                      const tone = getStatusChipStyles(pendingInfo.review_status);
-                      return (
+                    <div className="flex flex-col gap-2">
+                      <p
+                        className="text-sm uppercase tracking-[0.3em]"
+                        style={{ color: tone.style.color }}
+                      >
+                        {pendingInfo.review_status === "REJECTED"
+                          ? "Rejected"
+                          : pendingInfo.review_status === "APPROVED"
+                          ? "Fully approved"
+                          : "In manual review"}
+                      </p>
+                      <h3 className="text-2xl font-semibold text-[var(--color-text)]">
+                        {pendingInfo.application_id}
+                      </h3>
+                      <p className="text-sm text-[var(--color-text)]">
+                        Your request is queued for an analyst. Monitor progress below.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-[var(--color-text)]">
+                      <div>
+                        <p className="text-[var(--color-sky)]">Review status</p>
                         <span
                           className="inline-flex items-center mt-1 rounded-full px-3 py-1 text-xs font-semibold tracking-wide border"
                           style={tone.style}
                         >
                           {tone.label}
                         </span>
-                      );
-                    })()}
-                  </div>
-                  {pendingInfo.submitted_at && (
-                    <div>
-                      <p className="text-[var(--color-sky)]">Submitted</p>
-                      <p>
-                        {new Date(pendingInfo.submitted_at).toLocaleString(undefined, {
-                          dateStyle: "medium",
-                          timeStyle: "short"
-                        })}
-                      </p>
+                      </div>
+                      {pendingInfo.submitted_at && (
+                        <div>
+                          <p className="text-[var(--color-sky)]">Submitted</p>
+                          <p>
+                            {new Date(pendingInfo.submitted_at).toLocaleString(undefined, {
+                              dateStyle: "medium",
+                              timeStyle: "short"
+                            })}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
+                  </div>
+                );
+              })()}
           </div>
 
           <aside className="space-y-6">
             <div className="bg-gradient-to-br from-[var(--color-navy)] to-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/20 p-5 space-y-3">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-[var(--color-blue)] flex items-center justify-center text-lg font-semibold">
+                <div className="h-12 w-12 rounded-2xl bg-[var(--color-blue)] text-[var(--color-on-blue)] flex items-center justify-center text-lg font-semibold">
                   {(currentUser?.name || formData.name || "Client")
                     .split(" ")
                     .map((part) => part[0])

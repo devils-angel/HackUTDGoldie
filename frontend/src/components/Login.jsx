@@ -78,7 +78,7 @@ export default function Login() {
               />
             </div>
 
-            <button className="w-full bg-[var(--color-blue)] text-[var(--color-text)] rounded-xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[var(--color-blue)]/20 hover:bg-[var(--color-gray)] transition">
+            <button className="w-full bg-[var(--color-blue)] text-[var(--color-on-blue)] rounded-xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[var(--color-blue)]/20 hover:bg-[var(--color-gray)] transition">
               Sign In
             </button>
           </form>
