@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import VerificationService from "./verificationService.js";
 import {
   createLoanApplication,
@@ -25,6 +26,7 @@ import { seedLoanApplications } from "./seedLoanData.js";
 import { query } from "./db.js";
 
 const PORT = process.env.PORT || 5003;
+const JWT_SECRET = process.env.JWT_SECRET || "dev-goldman-secret";
 const autoSeedOnStart = process.env.AUTO_SEED === "true";
 const USER_ROLES = ["ADMIN", "VENDOR", "CLIENT"];
 const normalizeRole = (value) =>
@@ -49,11 +51,40 @@ const MANUAL_STAGES = [
     remarksField: "eligibility_remarks"
   }
 ];
+const signToken = (user) =>
+  jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    },
+    JWT_SECRET,
+    { expiresIn: "4h" }
+  );
+
+const authenticate = (req, res, next) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : null;
+
+  if (!token) {
+    return res.status(401).json({ error: "Missing authorization token" });
+  }
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+};
+
 const actorFromRequest = (req) => {
   const actor = req.body?.actor || {};
   return {
-    email: actor.email || null,
-    role: actor.role || null
+    email: actor.email || req.user?.email || null,
+    role: actor.role || req.user?.role || null
   };
 };
 
@@ -96,14 +127,18 @@ app.post(
     }
 
     const hashed = await bcrypt.hash(password, 12);
-    await query(
-      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4)",
+    const { rows } = await query(
+      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role",
       [name, email, hashed, role]
     );
 
+    const user = rows[0];
+    const token = signToken(user);
+
     return res.status(201).json({
       message: "User registered successfully",
-      user: { name, email, role }
+      user,
+      token
     });
   })
 );
@@ -129,6 +164,8 @@ app.post(
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    const token = signToken(user);
+
     return res.json({
       message: "Login successful",
       user: {
@@ -136,10 +173,13 @@ app.post(
         name: user.name,
         email: user.email,
         role: user.role || "CLIENT"
-      }
+      },
+      token
     });
   })
 );
+
+app.use(authenticate);
 
 app.get(
   "/data",
@@ -188,6 +228,10 @@ app.post(
   "/loan-application/submit",
   asyncHandler(async (req, res) => {
     const data = req.body || {};
+    if (req.user) {
+      data.email = data.email || req.user.email;
+      data.name = data.name || req.user.name;
+    }
     const requiredFields = [
       "name",
       "email",
@@ -275,7 +319,11 @@ app.get(
   "/loan-application/user",
   asyncHandler(async (req, res) => {
     const { email, limit = 50 } = req.query;
-    if (!email) {
+    const requester = req.user;
+    const canViewAny = requester?.role === "ADMIN";
+    const targetEmail = canViewAny && email ? email : requester?.email;
+
+    if (!targetEmail) {
       return res.status(400).json({ error: "Email is required" });
     }
     const { rows } = await query(
@@ -283,7 +331,7 @@ app.get(
        WHERE email = $1
        ORDER BY created_at DESC
        LIMIT $2`,
-      [email, Number(limit)]
+      [targetEmail, Number(limit)]
     );
     return res.json({
       applications: rows.map(mapLoanRow)
@@ -295,10 +343,14 @@ app.get(
   "/bank-accounts",
   asyncHandler(async (req, res) => {
     const { email } = req.query;
-    if (!email) {
+    const requester = req.user;
+    const canViewAny = requester?.role === "ADMIN";
+    const targetEmail = canViewAny && email ? email : requester?.email;
+
+    if (!targetEmail) {
       return res.status(400).json({ error: "Email is required" });
     }
-    const accounts = await fetchBankAccountsByEmail(email);
+    const accounts = await fetchBankAccountsByEmail(targetEmail);
     res.json({ accounts });
   })
 );
@@ -325,7 +377,6 @@ app.post(
     } = req.body || {};
 
     if (
-      !owner_email ||
       !bank_name ||
       !account_type ||
       !purpose ||
@@ -342,8 +393,16 @@ app.post(
       return res.status(400).json({ error: "Missing account fields" });
     }
 
+    const requester = req.user;
+    const ownerEmail =
+      (requester?.role === "ADMIN" && owner_email) || requester?.email || owner_email;
+
+    if (!ownerEmail) {
+      return res.status(400).json({ error: "Owner email missing" });
+    }
+
     const account = await createBankAccount({
-      owner_email,
+      owner_email: ownerEmail,
       bank_name,
       account_type,
       purpose,
@@ -472,11 +531,20 @@ app.post(
     const finalRemarks = reason?.trim()
       ? reason.trim()
       : "Application rejected during manual review";
+    const nowIso = new Date().toISOString();
+    const stageUpdates = nextStage
+      ? {
+          [nextStage.key]: "REJECTED",
+          [nextStage.verifiedField]: nowIso,
+          [nextStage.remarksField]: finalRemarks
+        }
+      : {};
     await updateLoanApplicationById(application.id, {
       final_status: "REJECTED",
       final_remarks: finalRemarks,
-      final_decision_at: new Date().toISOString(),
-      review_status: "REJECTED"
+      final_decision_at: nowIso,
+      review_status: "REJECTED",
+      ...stageUpdates
     });
 
     const updated = await getLoanApplicationByApplicationId(applicationId);
@@ -736,10 +804,15 @@ app.get(
   "/notifications",
   asyncHandler(async (req, res) => {
     const { email, role } = req.query;
-    if (!email || !role) {
+    const effectiveEmail = email || req.user?.email;
+    const effectiveRole = role || req.user?.role;
+    if (!effectiveEmail || !effectiveRole) {
       return res.status(400).json({ error: "Email and role are required" });
     }
-    const notifications = await fetchNotificationsForRole({ email, role });
+    const notifications = await fetchNotificationsForRole({
+      email: effectiveEmail,
+      role: effectiveRole
+    });
     res.json({ notifications });
   })
 );

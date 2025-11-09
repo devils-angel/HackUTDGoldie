@@ -10,6 +10,17 @@ const API = axios.create({
   baseURL,
 });
 
+API.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("goldmanToken");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 // ...existing code...
 export const loginUser = (data) => API.post("/login", data);
 export const registerUser = (data) => API.post("/register", data);

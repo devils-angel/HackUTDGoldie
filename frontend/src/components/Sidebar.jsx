@@ -7,18 +7,18 @@ const roleLinks = {
     { label: "Pending Requests", to: "/pending" },
     { label: "Approval Log", to: "/logs" },
     { label: "Notifications", to: "/notifications" },
-    { label: "Sign Out", to: "/login" },
+    { label: "Sign Out", to: "/login", signOut: true },
   ],
   VENDOR: [
     { label: "Pending Requests", to: "/pending" },
     { label: "Notifications", to: "/notifications" },
-    { label: "Sign Out", to: "/login" },
+    { label: "Sign Out", to: "/login", signOut: true },
   ],
   CLIENT: [
     { label: "Loan Workspace", to: "/loan" },
     { label: "Bank Accounts", to: "/accounts" },
     { label: "Notifications", to: "/notifications" },
-    { label: "Sign Out", to: "/login" },
+    { label: "Sign Out", to: "/login", signOut: true },
   ],
 };
 
@@ -35,6 +35,13 @@ const getInitials = (name = "") =>
 export default function Sidebar() {
   const [links, setLinks] = useState(defaultLinks);
   const [user, setUser] = useState(null);
+
+  const handleSignOut = () => {
+    localStorage.removeItem("goldmanUser");
+    localStorage.removeItem("goldmanToken");
+    setUser(null);
+    setLinks(defaultLinks);
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -81,6 +88,7 @@ export default function Sidebar() {
             <NavLink
               key={link.to}
               to={link.to}
+              onClick={link.signOut ? handleSignOut : undefined}
               className={({ isActive }) =>
                 [
                   "flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition",

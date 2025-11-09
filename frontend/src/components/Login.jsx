@@ -11,13 +11,19 @@ export default function Login() {
     try {
       const response = await loginUser(form);
       const user = response?.data?.user;
+      const token = response?.data?.token;
       if (user) {
         localStorage.setItem("goldmanUser", JSON.stringify(user));
+      }
+      if (token) {
+        localStorage.setItem("goldmanToken", token);
       }
       alert("Login successful!");
       navigate("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
+      localStorage.removeItem("goldmanUser");
+      localStorage.removeItem("goldmanToken");
       alert("Unable to log in. Please check your credentials.");
     }
   };

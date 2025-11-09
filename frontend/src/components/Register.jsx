@@ -20,11 +20,21 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await registerUser(form);
-      alert("Registration successful! Please log in.");
-      navigate("/login");
+      const response = await registerUser(form);
+      const user = response?.data?.user;
+      const token = response?.data?.token;
+      if (user) {
+        localStorage.setItem("goldmanUser", JSON.stringify(user));
+      }
+      if (token) {
+        localStorage.setItem("goldmanToken", token);
+      }
+      alert("Registration successful!");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Registration failed:", error);
+      localStorage.removeItem("goldmanUser");
+      localStorage.removeItem("goldmanToken");
       alert("Something went wrong. Please try again.");
     }
   };
