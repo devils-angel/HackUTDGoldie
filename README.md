@@ -1,4 +1,5 @@
-# HackUTDGoldie – Loan Orchestration Platform
+# OnBoardIQ – Loan Orchestration Platform
+OnBoardIQ is a secure and intelligent onboarding platform designed for financial institutions built during HackUTD2025. It streamlines client and vendor onboarding with AI-powered features, and comprehensive compliance tools.
 
 This repo contains:
 
@@ -7,20 +8,18 @@ This repo contains:
 - **ML toolkit** (`ml/train_model.py`, `ml/model_service.py`) to train/deploy the loan-prediction model used by the backend.
 
 Below are the steps to run every layer locally.
-
 ---
-
 ## 1. Prerequisites
 
 - Node.js 18+
 - Python 3.9+ (with `venv`)
-- PostgreSQL running locally (defaults: `postgres:Pra@1ful` at `localhost:5432`)
+- PostgreSQL running locally (defaults:`localhost:5432`)
 - Homebrew + `libomp` (macOS only, needed for XGBoost): `brew install libomp`
 
 ## 2. Install backend dependencies
 
 ```bash
-cd /Users/prafullkumar/Desktop/Projects/HackUTDGoldie
+cd HackUTDGoldie
 npm install
 ```
 
