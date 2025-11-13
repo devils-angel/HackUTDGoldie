@@ -1,5 +1,29 @@
-import { useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import Sidebar from "./Sidebar";
+import { applyForLoan, fetchUserLoans, fetchBankAccounts } from "../api";
+import { getStatusChipStyles, getModelVerdictStyles } from "../utils/statusStyles";
+
+const REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASIA"];
+
+const LOAN_PURPOSES = [
+  "Home Purchase",
+  "Business Expansion",
+  "Education",
+  "Medical Expenses",
+  "Debt Consolidation",
+  "Vehicle Purchase",
+  "Home Renovation",
+  "Working Capital",
+  "Investment",
+  "Emergency Funds"
+];
+
+const STAGE_FLOW = [
+  { key: "eligibility_status", label: "Eligibility" },
+  { key: "kyc_status", label: "KYC" },
+  { key: "compliance_status", label: "Compliance" }
+];
 
 export default function LoanForm() {
   const [formData, setFormData] = useState({
@@ -12,27 +36,18 @@ export default function LoanForm() {
     debt: "",
     credit_score: "",
     loan_amount: "",
-    loan_purpose: "Home Purchase",
+    loan_purpose: "Home Purchase"
   });
-
-  const [result, setResult] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  const REGIONS = ["APAC", "EMEA", "AMERICAS", "MEA", "NA", "SA", "EU", "ASIA"];
-  
-  const LOAN_PURPOSES = [
-    "Home Purchase",
-    "Business Expansion",
-    "Education",
-    "Medical Expenses",
-    "Debt Consolidation",
-    "Vehicle Purchase",
-    "Home Renovation",
-    "Working Capital",
-    "Investment",
-    "Emergency Funds",
-  ];
+  const [pendingInfo, setPendingInfo] = useState(null);
+  const [requests, setRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestsError, setRequestsError] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [accountsError, setAccountsError] = useState(null);
+  const [selectedAccount, setSelectedAccount] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,419 +55,589 @@ export default function LoanForm() {
     setError(null);
   };
 
+  const loadRequests = async (email) => {
+    if (!email) return;
+    setRequestsLoading(true);
+    setRequestsError(null);
+    try {
+      const response = await fetchUserLoans(email, 50);
+      setRequests(response.data.applications || []);
+    } catch (err) {
+      console.error("Failed to load loan requests", err);
+      setRequestsError(
+        err.response?.data?.error || "Unable to load your loan requests."
+      );
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  const loadAccounts = async (email) => {
+    if (!email) return;
+    setAccountsError(null);
+    try {
+      const response = await fetchBankAccounts(email);
+      const list = response.data.accounts || [];
+      setAccounts(list);
+      setSelectedAccount((prev) =>
+        prev ? prev : list.length ? String(list[0].id) : ""
+      );
+    } catch (err) {
+      console.error("Failed to load accounts", err);
+      setAccountsError(
+        err.response?.data?.error || "Unable to load bank accounts."
+      );
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setResult(null);
+    setPendingInfo(null);
 
     try {
-      // API endpoint - adjust the base URL as needed
-      const API_BASE_URL = "http://localhost:5000";
-      
-      const response = await axios.post(
-        `${API_BASE_URL}/loan-application/submit`,
-        {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          region: formData.region,
-          country: formData.country,
-          income: parseFloat(formData.income),
-          debt: parseFloat(formData.debt),
-          credit_score: parseInt(formData.credit_score),
-          loan_amount: parseFloat(formData.loan_amount),
-          loan_purpose: formData.loan_purpose,
-          documents_uploaded: true,
-        }
-      );
+      const response = await applyForLoan({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        region: formData.region,
+        country: formData.country,
+        income: parseFloat(formData.income),
+        debt: parseFloat(formData.debt),
+        credit_score: parseInt(formData.credit_score, 10),
+        loan_amount: parseFloat(formData.loan_amount),
+        loan_purpose: formData.loan_purpose,
+        documents_uploaded: true,
+        bank_account_id: selectedAccount ? Number(selectedAccount) : undefined
+      });
 
-      setResult(response.data);
+      setPendingInfo(response.data.application);
+      const email = currentUser?.email || formData.email;
+      if (email) {
+        loadRequests(email);
+      }
     } catch (err) {
       console.error("Error applying for loan:", err);
       setError(
-        err.response?.data?.error || 
-        err.message || 
-        "Something went wrong. Please try again."
+        err.response?.data?.error ??
+          err.message ??
+          "Something went wrong. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem("goldmanUser");
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+        setFormData((prev) => ({
+          ...prev,
+          name: user?.name || prev.name,
+          email: user?.email || prev.email
+        }));
+        if (user?.email) {
+          loadRequests(user.email);
+          loadAccounts(user.email);
+        }
+      } catch (err) {
+        console.error("Failed to parse stored user", err);
+      }
+    }
+  }, []);
+
+  const inputClasses =
+    "w-full rounded-2xl border border-[var(--color-blue)]/20 bg-[var(--color-navy)] px-4 py-3 text-[var(--color-text)] placeholder:text-[var(--color-gray)] focus:border-[var(--color-blue)] focus:ring-2 focus:ring-[var(--color-blue)]/30 outline-none transition";
+  const readOnlyInputClasses = `${inputClasses} bg-[var(--color-navy)] text-[color:color-mix(in_srgb,var(--color-text)_80%,transparent)] cursor-not-allowed focus:border-[var(--color-blue)]/20 focus:ring-0`;
+  const selectClasses = `${inputClasses} appearance-none pr-10`;
+  const labelClasses = "block text-sm font-medium text-[var(--color-text)] mb-2";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              Loan Application
-            </h2>
-            <p className="text-gray-600">
-              Complete the form below to check your loan eligibility
-            </p>
-          </div>
+    <div className="min-h-screen lg:flex bg-[var(--color-navy)] text-[var(--color-text)]">
+      <Sidebar />
+      <div className="flex-1 px-6 py-10 md:px-10 space-y-10">
+        <header className="space-y-3 text-center md:text-left">
+          <p className="text-sm uppercase tracking-[0.4em] text-[var(--color-sky)]">
+            Goldman Credit Desk
+          </p>
+          <h2 className="text-4xl md:text-5xl font-semibold leading-tight">
+            Structure a new loan application with confidence.
+          </h2>
+          <p className="text-[var(--color-text)] max-w-2xl">
+            Provide the borrower profile and our underwriting engine will trigger
+            automated KYC, compliance, and eligibility checks once approved.
+          </p>
+        </header>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Personal Information Section */}
-            <div className="border-b pb-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
-                Personal Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,2.2fr)_minmax(280px,1fr)]">
+          <div className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/10 shadow-2xl p-8 space-y-10">
+            <form onSubmit={handleSubmit} className="space-y-10">
+              <section className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="John Doe"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <h3 className="text-xl font-semibold">Personal Information</h3>
+                  <p className="text-sm text-[var(--color-sky)]">
+                    Borrower details required for identity verification.
+                  </p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    placeholder="john.doe@example.com"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClasses}>Full Name *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      placeholder="John Doe"
+                      required
+                      readOnly
+                      className={readOnlyInputClasses}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Email *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      placeholder="john.doe@example.com"
+                      required
+                      readOnly
+                      className={readOnlyInputClasses}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Phone Number *</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="+1234567890"
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Country *</label>
+                    <input
+                      type="text"
+                      name="country"
+                      value={formData.country}
+                      onChange={handleChange}
+                      placeholder="United States"
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Region *</label>
+                    <select
+                      name="region"
+                      value={formData.region}
+                      onChange={handleChange}
+                      required
+                      className={selectClasses}
+                    >
+                      {REGIONS.map((region) => (
+                        <option key={region} value={region}>
+                          {region}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    placeholder="+1234567890"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <label className={labelClasses}>Linked Account</label>
+                  {accountsError ? (
+                    <p className="text-sm text-[var(--color-text)]">{accountsError}</p>
+                  ) : accounts.length ? (
+                    <select
+                      className={selectClasses}
+                      value={selectedAccount}
+                      onChange={(e) => setSelectedAccount(e.target.value)}
+                    >
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.bank_name} • {account.account_type} • #
+                          {account.account_number}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-[var(--color-text)]">
+                      No accounts linked.{" "}
+                      <Link to="/accounts" className="text-[var(--color-blue)] underline">
+                        Add one
+                      </Link>{" "}
+                      to speed up disbursement.
+                    </p>
+                  )}
                 </div>
+              </section>
 
+              <section className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Country *
-                  </label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    required
-                    placeholder="United States"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <h3 className="text-xl font-semibold">Financial Snapshot</h3>
+                  <p className="text-sm text-[var(--color-sky)]">
+                    Used to calculate debt-to-income and exposure ratios.
+                  </p>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClasses}>Annual Income ($) *</label>
+                    <input
+                      type="number"
+                      name="income"
+                      value={formData.income}
+                      onChange={handleChange}
+                      placeholder="75000"
+                      min="0"
+                      step="0.01"
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Total Debt ($) *</label>
+                    <input
+                      type="number"
+                      name="debt"
+                      value={formData.debt}
+                      onChange={handleChange}
+                      placeholder="25000"
+                      min="0"
+                      step="0.01"
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Credit Score *</label>
+                    <input
+                      type="number"
+                      name="credit_score"
+                      value={formData.credit_score}
+                      onChange={handleChange}
+                      placeholder="720"
+                      min="300"
+                      max="850"
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Loan Amount ($) *</label>
+                    <input
+                      type="number"
+                      name="loan_amount"
+                      value={formData.loan_amount}
+                      onChange={handleChange}
+                      placeholder="250000"
+                      min="0"
+                      step="0.01"
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                </div>
+              </section>
 
+              <section className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Region *
-                  </label>
+                  <h3 className="text-xl font-semibold">Loan Structure</h3>
+                  <p className="text-sm text-[var(--color-sky)]">
+                    Select the intended capital deployment.
+                  </p>
+                </div>
+                <div>
+                  <label className={labelClasses}>Purpose *</label>
                   <select
-                    name="region"
-                    value={formData.region}
+                    name="loan_purpose"
+                    value={formData.loan_purpose}
                     onChange={handleChange}
                     required
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={selectClasses}
                   >
-                    {REGIONS.map((region) => (
-                      <option key={region} value={region}>
-                        {region}
+                    {LOAN_PURPOSES.map((purpose) => (
+                      <option key={purpose} value={purpose}>
+                        {purpose}
                       </option>
                     ))}
                   </select>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            {/* Financial Information Section */}
-            <div className="border-b pb-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
-                Financial Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Annual Income ($) *
-                  </label>
-                  <input
-                    type="number"
-                    name="income"
-                    value={formData.income}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="75000"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Total Debt ($) *
-                  </label>
-                  <input
-                    type="number"
-                    name="debt"
-                    value={formData.debt}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="25000"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Credit Score *
-                  </label>
-                  <input
-                    type="number"
-                    name="credit_score"
-                    value={formData.credit_score}
-                    onChange={handleChange}
-                    required
-                    min="300"
-                    max="850"
-                    placeholder="720"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Loan Amount ($) *
-                  </label>
-                  <input
-                    type="number"
-                    name="loan_amount"
-                    value={formData.loan_amount}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="250000"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Loan Details Section */}
-            <div className="pb-6">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">
-                Loan Details
-              </h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Loan Purpose *
-                </label>
-                <select
-                  name="loan_purpose"
-                  value={formData.loan_purpose}
-                  onChange={handleChange}
-                  required
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {LOAN_PURPOSES.map((purpose) => (
-                    <option key={purpose} value={purpose}>
-                      {purpose}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg py-3 font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing Application...
-                </span>
-              ) : (
-                "Submit Application"
-              )}
-            </button>
-          </form>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-red-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Error</h3>
-                  <p className="mt-1 text-sm text-red-700">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Success Result */}
-          {result && result.application && (
-            <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-lg shadow-md">
-              <div className="mb-4">
-                <h3 className="text-xl font-bold text-green-800 flex items-center">
-                  <svg
-                    className="w-6 h-6 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Application Submitted Successfully!
-                </h3>
-              </div>
-
-              <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-gray-600 font-medium">Application ID:</p>
-                    <p className="text-gray-900 font-mono">
-                      {result.application.application_id}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600 font-medium">Status:</p>
-                    <p
-                      className={`font-bold ${
-                        result.application.final_status === "APPROVED"
-                          ? "text-green-600"
-                          : result.application.final_status === "REJECTED"
-                          ? "text-red-600"
-                          : "text-yellow-600"
-                      }`}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[var(--color-blue)] text-[var(--color-on-blue)] rounded-2xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[var(--color-blue)]/30 hover:bg-[var(--color-gray)] transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-3">
+                    <svg
+                      className="animate-spin h-5 w-5 text-[var(--color-text)]"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
                     >
-                      {result.application.final_status}
-                    </p>
-                  </div>
-                </div>
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Processing application…
+                  </span>
+                ) : (
+                  "Submit application"
+                )}
+              </button>
+            </form>
 
-                <div className="pt-4 border-t border-green-200">
-                  <p className="font-semibold text-gray-700 mb-2">
-                    Verification Results:
+            {error && (
+              <div className="p-5 rounded-2xl border border-[var(--color-blue)]/30 bg-[var(--color-charcoal)] text-[var(--color-text)]">
+                <p className="font-semibold flex items-center gap-2 text-[var(--color-sky)]">
+                  <span className="text-xl">⚠</span> Submission error
+                </p>
+                <p className="mt-2 text-sm">{error}</p>
+              </div>
+            )}
+
+            {pendingInfo &&
+              (() => {
+                const tone = getStatusChipStyles(pendingInfo.review_status);
+                const panelBg =
+                  pendingInfo.review_status === "REJECTED"
+                    ? "var(--model-reject-panel)"
+                    : pendingInfo.review_status === "APPROVED"
+                    ? "var(--model-approve-panel)"
+                    : "var(--model-pending-panel)";
+                return (
+                  <div
+                    className="p-6 rounded-3xl space-y-4 border"
+                    style={{
+                      borderColor: tone.style.borderColor,
+                      background: panelBg
+                    }}
+                  >
+                    <div className="flex flex-col gap-2">
+                      <p
+                        className="text-sm uppercase tracking-[0.3em]"
+                        style={{ color: tone.style.color }}
+                      >
+                        {pendingInfo.review_status === "REJECTED"
+                          ? "Rejected"
+                          : pendingInfo.review_status === "APPROVED"
+                          ? "Fully approved"
+                          : "In manual review"}
+                      </p>
+                      <h3 className="text-2xl font-semibold text-[var(--color-text)]">
+                        {pendingInfo.application_id}
+                      </h3>
+                      <p className="text-sm text-[var(--color-text)]">
+                        Your request is queued for an analyst. Monitor progress below.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-[var(--color-text)]">
+                      <div>
+                        <p className="text-[var(--color-sky)]">Review status</p>
+                        <span
+                          className="inline-flex items-center mt-1 rounded-full px-3 py-1 text-xs font-semibold tracking-wide border"
+                          style={tone.style}
+                        >
+                          {tone.label}
+                        </span>
+                      </div>
+                      {pendingInfo.submitted_at && (
+                        <div>
+                          <p className="text-[var(--color-sky)]">Submitted</p>
+                          <p>
+                            {new Date(pendingInfo.submitted_at).toLocaleString(undefined, {
+                              dateStyle: "medium",
+                              timeStyle: "short"
+                            })}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+          </div>
+
+          <aside className="space-y-6">
+            <div className="bg-gradient-to-br from-[var(--color-navy)] to-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/20 p-5 space-y-3">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-[var(--color-blue)] text-[var(--color-on-blue)] flex items-center justify-center text-lg font-semibold">
+                  {(currentUser?.name || formData.name || "Client")
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm text-[var(--color-sky)] uppercase tracking-[0.3em]">
+                    Signed in
                   </p>
-                  <div className="space-y-2 ml-4">
-                    <div className="flex items-center">
-                      <span
-                        className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                          result.application.kyc_status === "APPROVED"
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      ></span>
-                      <span>
-                        KYC Verification: {result.application.kyc_status}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span
-                        className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                          result.application.compliance_status === "APPROVED"
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      ></span>
-                      <span>
-                        Compliance Check:{" "}
-                        {result.application.compliance_status}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span
-                        className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                          result.application.eligibility_status === "APPROVED"
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      ></span>
-                      <span>
-                        Eligibility Assessment:{" "}
-                        {result.application.eligibility_status}
-                      </span>
-                    </div>
-                  </div>
+                  <p className="text-lg font-semibold">
+                    {currentUser?.name || formData.name || "Client User"}
+                  </p>
                 </div>
-
-                {result.application.dti_ratio && (
-                  <div className="pt-4 border-t border-green-200">
-                    <p className="text-gray-600">
-                      <strong>Debt-to-Income Ratio:</strong>{" "}
-                      {(result.application.dti_ratio * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                )}
-
-                {result.application.final_remarks && (
-                  <div className="pt-4 border-t border-green-200">
-                    <p className="text-gray-600 italic">
-                      {result.application.final_remarks}
-                    </p>
-                  </div>
-                )}
+              </div>
+              <div className="text-sm text-[var(--color-text)] space-y-1">
+                <p>{currentUser?.email || formData.email || "—"}</p>
+                <p className="text-xs text-[var(--color-gray)]">
+                  Role: {(currentUser?.role || "Client").toUpperCase()}
+                </p>
+              </div>
+              <div className="flex items-center justify-between text-xs text-[var(--color-sky)] border-t border-[var(--color-blue)]/20 pt-3">
+                <span>{accounts.length ? `${accounts.length} accounts linked` : "No accounts yet"}</span>
+                <span className="text-[var(--color-sky)]">
+                  {requests.length ? `${requests.length} requests` : "New applicant"}
+                </span>
               </div>
             </div>
-          )}
+            <div className="bg-[var(--color-charcoal)] rounded-3xl border border-[var(--color-blue)]/20 p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.3em] text-[var(--color-sky)]">
+                    My Portfolio
+                  </p>
+                  <h3 className="text-2xl font-semibold">Your Requests</h3>
+                </div>
+                <button
+                  className="text-xs text-[var(--color-sky)] hover:text-[var(--color-text)]"
+                  onClick={() => {
+                    const email = currentUser?.email || formData.email;
+                    if (email) loadRequests(email);
+                  }}
+                >
+                  Refresh
+                </button>
+              </div>
+
+              {requestsLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-[var(--color-blue)]" />
+                </div>
+              ) : requestsError ? (
+                <p className="text-sm text-[var(--color-text)]">{requestsError}</p>
+              ) : requests.length === 0 ? (
+                <p className="text-sm text-[var(--color-text)]">
+                  You haven’t submitted any loan applications yet.
+                </p>
+              ) : (
+                <div className="space-y-3 max-h-[32rem] overflow-y-auto pr-2">
+                  {requests.map((req) => {
+                    const status =
+                      req.final_status && req.final_status !== "PENDING"
+                        ? req.final_status
+                        : req.review_status || "PENDING";
+                    const tone = getStatusChipStyles(status);
+                    return (
+                      <div
+                        key={req.application_id}
+                        className="border border-[var(--color-blue)]/20 rounded-2xl p-4 bg-[var(--color-navy)] space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-sky)]">
+                            {req.application_id}
+                          </p>
+                          <span
+                            className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide border"
+                            style={tone.style}
+                          >
+                            {tone.label}
+                          </span>
+                        </div>
+                        <p className="text-lg font-semibold text-[var(--color-text)]">
+                          {req.loan_purpose || "Loan Request"}
+                        </p>
+                        <p className="text-sm text-[var(--color-text)]">
+                          ${Number(req.loan_amount).toLocaleString()}
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-xs pt-1 border-t border-[var(--color-blue)]/15">
+                          {STAGE_FLOW.map((stage) => {
+                            const stageTone = getStatusChipStyles(req[stage.key]);
+                            return (
+                              <span
+                                key={`${req.application_id}-${stage.key}`}
+                                className="px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide border"
+                                style={stageTone.style}
+                              >
+                                {stage.label}: {stageTone.label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        {(req.model_decision || req.model_score != null) &&
+                          (() => {
+                            const verdictStyles = getModelVerdictStyles(
+                              req.model_decision
+                            );
+                            return (
+                              <div
+                                className="p-3 rounded-2xl border"
+                                style={verdictStyles.container}
+                              >
+                                <div className="flex items-center justify-between text-xs font-semibold">
+                                  <span>Model verdict</span>
+                                  <span
+                                    className="px-2 py-0.5 rounded-full border text-xs font-semibold tracking-wide"
+                                    style={verdictStyles.badge}
+                                  >
+                                    {(req.model_decision || "MODEL_REVIEW")
+                                      .replace("MODEL_", "")
+                                      .toUpperCase()}
+                                  </span>
+                                </div>
+                                {req.model_score != null && (
+                                  <div className="mt-2">
+                                    <div className="flex justify-between text-[11px] uppercase">
+                                      <span>Confidence</span>
+                                      <span>
+                                        {(Number(req.model_score) * 100).toFixed(1)}%
+                                      </span>
+                                    </div>
+                                    <div
+                                      className="mt-1 h-1.5 rounded-full overflow-hidden"
+                                      style={{ backgroundColor: "var(--color-blue-softer)" }}
+                                    >
+                                      <div
+                                        className="h-full rounded-full"
+                                        style={{
+                                          width: `${Math.min(
+                                            100,
+                                            Math.max(0, Number(req.model_score) * 100)
+                                          )}%`,
+                                          backgroundColor: verdictStyles.barColor
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
       </div>
     </div>

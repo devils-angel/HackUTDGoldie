@@ -1,8 +1,95 @@
 @import "tailwindcss";
 
+:root {
+  --color-navy: #00355f;
+  --color-charcoal: #231f20;
+  --color-blue: #7399c6;
+  --color-sky: #acd4f1;
+  --color-white: #ffffff;
+  --color-text: #ffffff;
+  --color-gray: #58575a;
+  --color-border-soft: rgba(173, 212, 241, 0.2);
+  --color-border-medium: rgba(173, 212, 241, 0.35);
+  --color-border-strong: rgba(173, 212, 241, 0.5);
+  --color-blue-soft: rgba(115, 153, 198, 0.15);
+  --color-blue-softer: rgba(115, 153, 198, 0.08);
+  --gradient-start: #00355f;
+  --gradient-end: #231f20;
+  --status-approve-bg: #64f6a3;
+  --status-approve-text: #00355f;
+  --status-approve-border: rgba(100, 246, 163, 0.35);
+  --status-approve-bar: #2aa86b;
+  --status-pending-bg: #f0bb5a;
+  --status-pending-text: #231f20;
+  --status-pending-border: rgba(240, 187, 90, 0.4);
+  --status-pending-bar: #c47d1c;
+  --status-reject-bg: #ff8fa3;
+  --status-reject-text: #ffffff;
+  --status-reject-border: rgba(255, 143, 163, 0.4);
+  --status-reject-bar: #c4435a;
+  --status-auto-reject-bg: #c2344b;
+  --status-auto-reject-text: #ffffff;
+  --status-auto-reject-border: rgba(194, 52, 75, 0.45);
+  --model-approve-panel: rgba(100, 246, 163, 0.12);
+  --model-pending-panel: rgba(240, 187, 90, 0.12);
+  --model-reject-panel: rgba(255, 143, 163, 0.15);
+  --nav-active-bg: #7399c6;
+  --nav-active-text: #ffffff;
+  --nav-hover-bg: rgba(173, 212, 241, 0.15);
+  --color-on-blue: #ffffff;
+  --color-on-charcoal: #ffffff;
+}
+
+[data-theme="light"] {
+  --color-navy: #f5f7fb;
+  --color-charcoal: #ffffff;
+  --color-blue: #00355f;
+  --color-sky: #58575a;
+  --color-white: #ffffff;
+  --color-text: #231f20;
+  --color-gray: #58575a;
+  --color-border-soft: rgba(0, 53, 95, 0.12);
+  --color-border-medium: rgba(0, 53, 95, 0.25);
+  --color-border-strong: rgba(0, 53, 95, 0.4);
+  --color-blue-soft: rgba(0, 53, 95, 0.08);
+  --color-blue-softer: rgba(0, 53, 95, 0.04);
+  --gradient-start: #ffffff;
+  --gradient-end: #e7edf5;
+  --status-approve-bg: #b4f0d3;
+  --status-approve-text: #00533f;
+  --status-approve-border: rgba(100, 246, 163, 0.35);
+  --status-approve-bar: #1c6d47;
+  --status-pending-bg: #ffe4b8;
+  --status-pending-text: #7a3f00;
+  --status-pending-border: rgba(240, 187, 90, 0.4);
+  --status-pending-bar: #a05800;
+  --status-reject-bg: #ffd3dc;
+  --status-reject-text: #7a1525;
+  --status-reject-border: rgba(255, 143, 163, 0.45);
+  --status-reject-bar: #a11f32;
+  --status-auto-reject-bg: #9c1f35;
+  --status-auto-reject-text: #ffffff;
+  --status-auto-reject-border: rgba(194, 52, 75, 0.45);
+  --model-approve-panel: rgba(100, 246, 163, 0.25);
+  --model-pending-panel: rgba(240, 187, 90, 0.25);
+  --model-reject-panel: rgba(255, 143, 163, 0.3);
+  --nav-active-bg: #00355f;
+  --nav-active-text: #ffffff;
+  --nav-hover-bg: rgba(0, 53, 95, 0.08);
+  --color-on-blue: #ffffff;
+  --color-on-charcoal: #231f20;
+}
+
 body {
-  @apply bg-white text-black;
+  color: var(--color-text);
+  background-color: var(--color-navy);
   font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="light"] body {
+  background-color: var(--color-navy);
+  color: var(--color-white);
 }
 
 /* 

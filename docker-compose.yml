@@ -3,9 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: flask-app
+    container_name: loan-backend
     ports:
-      - "5000:5000"
+      - "5003:5003"
+    environment:
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      - kafka
 
   frontend:
     build:

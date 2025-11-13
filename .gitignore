@@ -1,4 +1,23 @@
+# Python artifacts
 __pycache__/
 *.pyc
+.venv/
+ml/artifacts/
+
+# Node / frontend artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Local databases & csv training data
 database.db
+database.db-wal
+database.db-shm
+database.db-*
+.db-wal
+.db-shm
+train.csv
+
+# Env / secrets
 .env
+.env.*

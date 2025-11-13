@@ -6,47 +6,91 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const navigate = useNavigate();
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await loginUser(form);
+      const response = await loginUser(form);
+      const user = response?.data?.user;
+      const token = response?.data?.token;
+      if (user) {
+        localStorage.setItem("goldmanUser", JSON.stringify(user));
+      }
+      if (token) {
+        localStorage.setItem("goldmanToken", token);
+      }
       alert("Login successful!");
       navigate("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
-      alert({error});
+      localStorage.removeItem("goldmanUser");
+      localStorage.removeItem("goldmanToken");
+      alert("Unable to log in. Please check your credentials.");
     }
-  }
+  };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-96">
-      <h2 className="text-2xl font-bold mb-6 text-blue-600 text-center">Login</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <input
-        type="email"
-        placeholder="Email"
-        className="p-2 rounded bg-gray-50 text-black border border-gray-400"
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        className="p-2 rounded bg-gray-50 text-black border border-gray-400"
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
-      />
-      <button className="bg-blue-600 text-white rounded p-2 hover:opacity-90">
-        Sign In
-      </button>
-      <p className="text-sm text-center">
-        Don't have an account?{" "}
-        <Link to="/register" className="text-blue-600 underline">
-          Register
-        </Link>
-      </p>
-    </form>
-    </div>
+    <div className="min-h-screen bg-[var(--color-navy)] flex items-center justify-center px-6 py-12">
+      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <div className="text-[var(--color-text)] space-y-6">
+          <p className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.3em] text-[var(--color-sky)]">
+            <span className="w-10 h-px bg-[var(--color-sky)]" />
+            Goldman Loan Suite
+          </p>
+          <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
+            Welcome back, let’s keep your portfolio moving.
+          </h1>
+          <p className="text-lg text-[var(--color-text)]">
+            Manage applications, track verifications, and unlock faster loan
+            decisions from one unified command center.
+          </p>
+        </div>
+
+        <div className="bg-white/95 backdrop-blur rounded-3xl shadow-2xl p-8 md:p-10 space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold text-[var(--color-navy)]">Sign in</h2>
+            <p className="text-sm text-gray-500">
+              Secure access to the Goldman lending platform.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">Email</label>
+              <input
+                type="email"
+                placeholder="you@company.com"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 focus:border-[var(--color-blue)] focus:ring-2 focus:ring-[var(--color-blue)]/20 outline-none transition"
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-gray-900 focus:border-[var(--color-blue)] focus:ring-2 focus:ring-[var(--color-blue)]/20 outline-none transition"
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+            </div>
+
+            <button className="w-full bg-[var(--color-blue)] text-[var(--color-on-blue)] rounded-xl py-3.5 font-semibold tracking-wide shadow-lg shadow-[var(--color-blue)]/20 hover:bg-[var(--color-gray)] transition">
+              Sign In
+            </button>
+          </form>
+
+          <p className="text-sm text-center text-gray-500">
+            Don’t have an account?{" "}
+            <Link to="/register" className="text-[var(--color-blue)] font-medium">
+              Create one now
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

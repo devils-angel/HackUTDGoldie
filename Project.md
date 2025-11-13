@@ -42,7 +42,7 @@ A comprehensive end-to-end loan application processing system with automated KYC
 - User registration and authentication
 - Stock market data integration (existing functionality maintained)
 - RESTful API with CORS support
-- SQLite database with SQLAlchemy ORM
+- PostgreSQL database with Node.js ORM/helpers
 - Docker containerization
 
 ## 🏗️ System Architecture
@@ -54,7 +54,7 @@ A comprehensive end-to-end loan application processing system with automated KYC
        │
        ↓
 ┌─────────────────────────────────────────────────────────┐
-│              Flask Application (REST API)               │
+│              Node.js / Express Application              │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
@@ -80,61 +80,76 @@ A comprehensive end-to-end loan application processing system with automated KYC
 │                  │Notification │                        │
 │                  └─────────────┘                        │
 ├─────────────────────────────────────────────────────────┤
-│              SQLAlchemy ORM & SQLite DB                 │
+│              Node.js Services & PostgreSQL DB           │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Flask 3.0.3, Python 3.11
-- **Database**: SQLite with SQLAlchemy ORM
+- **Backend**: Node.js 20 + Express 4
+- **Database**: PostgreSQL (via pg)
 - **Containerization**: Docker & Docker Compose
 - **Message Queue**: Kafka (optional, infrastructure ready)
 - **Additional Libraries**: 
-  - Flask-CORS for cross-origin requests
-  - Werkzeug for password hashing
-  - Pandas for data processing
+  - cors for CORS handling
+  - bcryptjs for password hashing
+  - uuid for application IDs
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose installed
-- Python 3.11+ (for local development)
+- Docker and Docker Compose installed (optional)
+- Node.js 20+ and npm
 
-### Using Docker (Recommended)
+### Using Docker
 
 1. **Build and start the application**:
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
 
 2. **The application will be available at**:
-   - API: `http://localhost:5000`
-   - Health check: `http://localhost:5000/`
+   - API: `http://localhost:5003`
+   - Health check: `http://localhost:5003/`
 
-3. **Generate sample data** (optional):
+3. **Reseed sample data (optional)**:
    ```bash
-   docker exec -it flask-app python generate_sample_data.py
+   docker exec -it loan-backend npm run seed:loans
    ```
 
 ### Local Development
 
-1. **Install dependencies**:
+1. **Configure environment**:
    ```bash
-   pip install -r requirements.txt
+   cp .env.example .env  # set PGHOST, PGUSER, etc.
    ```
 
-2. **Run the application**:
+2. **Install dependencies**:
    ```bash
-   python seed_data.py  # Load stock data
-   python app.py        # Start Flask server
+   npm install
    ```
 
-3. **Generate sample data**:
+3. **Seed baseline data**:
    ```bash
-   python generate_sample_data.py
+   npm run seed:stocks     # Load stock quotes from CSV
+   node seedLoanData.js 50 # Generate 50 sample loan applications
    ```
+
+4. **Run the Node server**:
+   ```bash
+   npm start
+   ```
+
+### Auto-Seeding (optional)
+
+- Copy `.env.example` to `.env` and set your PostgreSQL credentials.
+- Set `AUTO_SEED=true` if you want the server to seed stocks and `IN_MEMORY_LOAN_COUNT` (defaults to 25) loan applications automatically on startup.
+- Example:
+  ```bash
+  AUTO_SEED=true npm start
+  ```
+  Disable `AUTO_SEED` for normal production usage.
 
 ## 📊 Workflow Overview
 
@@ -230,47 +245,48 @@ python test_api.py
 **Manual testing examples:**
 ```bash
 # Health check
-curl http://localhost:5000/
+curl http://localhost:5003/
 
 # Submit application
-curl -X POST http://localhost:5000/loan-application/submit \
+curl -X POST http://localhost:5003/loan-application/submit \
   -H "Content-Type: application/json" \
   -d '{"name":"Test User","email":"test@example.com","phone":"+1234567890","region":"AMERICAS","country":"United States","income":80000,"debt":20000,"credit_score":720,"loan_amount":200000,"loan_purpose":"Home Purchase"}'
 
 # View dashboard
-curl http://localhost:5000/dashboard/overview
+curl http://localhost:5003/dashboard/overview
 ```
 
 ## 📁 Project Structure
 
 ```
 .
-├── app.py                      # Main Flask application
-├── models.py                   # Database models
-├── verification_service.py     # Verification logic
-├── generate_sample_data.py     # Sample data generator
-├── test_api.py                 # API test suite
-├── requirements.txt            # Python dependencies
-├── Dockerfile                  # Docker image
+├── server.js                   # Express application entry point
+├── db.js                       # PostgreSQL connection & schema bootstrap
+├── loanService.js              # Loan persistence helpers
+├── verificationService.js      # Verification workflow logic
+├── seedData.js                 # Stock data seeder
+├── seedLoanData.js             # Sample loan generator
+├── start.sh                    # Helper script (seed + start server)
+├── package.json                # Backend dependencies & scripts
 ├── docker-compose.yml          # Multi-container setup
-├── README.md                   # This file
+├── Dockerfile                  # Backend container image
+├── frontend/                   # React application
 └── API_DOCUMENTATION.md        # Detailed API docs
 ```
 
 ## ⚙️ Configuration
 
-**Verification Rules** (in `verification_service.py`):
-```python
-MAX_DTI_RATIO = 0.4         # 40%
-MIN_CREDIT_SCORE = 650
-INCOME_TO_LOAN_RATIO = 3
-MAX_LOAN_AMOUNT = 1000000
-MIN_INCOME = 30000
-```
+**Verification Rules** (in `verificationService.js`):
+- `MAX_DTI_RATIO = 0.4`
+- `MIN_CREDIT_SCORE = 650`
+- `INCOME_TO_LOAN_RATIO = 3`
+- `MAX_LOAN_AMOUNT = 1_000_000`
+- `MIN_INCOME = 30_000`
 
 **Generate Sample Data**:
-```python
-generate_sample_applications(count=50)
+```bash
+npm run seed:stocks     # load stocks.csv
+node seedLoanData.js 50 # create and process 50 apps
 ```
 
 ## 🔮 Future Enhancements
@@ -310,4 +326,4 @@ generate_sample_applications(count=50)
 
 ---
 
-**Built with ❤️ using Flask, Python, and Docker**
+**Built with ❤️ using Node.js, PostgreSQL, and Docker**
